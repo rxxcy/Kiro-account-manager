@@ -1246,7 +1246,14 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
           autoSwitchThreshold: data.autoSwitchThreshold ?? 0,
           autoSwitchInterval: data.autoSwitchInterval ?? 5,
           theme: data.theme ?? 'default',
-          darkMode: data.darkMode ?? false
+          darkMode: data.darkMode ?? false,
+          machineIdConfig: data.machineIdConfig ?? {
+            autoSwitchOnAccountChange: false,
+            bindMachineIdToAccount: false,
+            useBindedMachineId: true
+          },
+          accountMachineIds: data.accountMachineIds ?? {},
+          machineIdHistory: data.machineIdHistory ?? []
         })
 
         // 应用主题
@@ -1288,7 +1295,10 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
       autoSwitchThreshold,
       autoSwitchInterval,
       theme,
-      darkMode
+      darkMode,
+      machineIdConfig,
+      accountMachineIds,
+      machineIdHistory
     } = get()
 
     set({ isSyncing: true })
@@ -1309,7 +1319,10 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
         autoSwitchThreshold,
         autoSwitchInterval,
         theme,
-        darkMode
+        darkMode,
+        machineIdConfig,
+        accountMachineIds,
+        machineIdHistory
       })
     } catch (error) {
       console.error('Failed to save accounts:', error)
@@ -1392,11 +1405,19 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     const { theme, darkMode } = get()
     const root = document.documentElement
     
-    // 移除所有主题类
+    // 移除所有主题类（包含所有 21 个主题）
     root.classList.remove(
       'dark', 
-      'theme-purple', 'theme-emerald', 'theme-orange', 'theme-rose', 'theme-cyan', 'theme-amber',
-      'theme-teal', 'theme-indigo', 'theme-lime', 'theme-pink', 'theme-slate', 'theme-zinc'
+      // 蓝色系
+      'theme-indigo', 'theme-cyan', 'theme-sky', 'theme-teal',
+      // 紫红系
+      'theme-purple', 'theme-violet', 'theme-fuchsia', 'theme-pink', 'theme-rose',
+      // 暖色系
+      'theme-red', 'theme-orange', 'theme-amber', 'theme-yellow',
+      // 绿色系
+      'theme-emerald', 'theme-green', 'theme-lime',
+      // 中性色
+      'theme-slate', 'theme-zinc', 'theme-stone', 'theme-neutral'
     )
     
     // 应用深色模式

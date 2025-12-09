@@ -1,24 +1,58 @@
 import { useAccountsStore } from '@/store/accounts'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui'
 import { Button } from '../ui'
-import { Eye, EyeOff, RefreshCw, Clock, Trash2, Download, Upload, Globe, Repeat, Palette, Moon, Sun, Fingerprint, Info } from 'lucide-react'
+import { Eye, EyeOff, RefreshCw, Clock, Trash2, Download, Upload, Globe, Repeat, Palette, Moon, Sun, Fingerprint, Info, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
+import { ExportDialog } from '../accounts/ExportDialog'
 
-// 主题配置
-const themes = [
-  { id: 'default', name: '默认蓝', color: '#3b82f6' },
-  { id: 'purple', name: '优雅紫', color: '#a855f7' },
-  { id: 'emerald', name: '翠绿', color: '#10b981' },
-  { id: 'orange', name: '活力橙', color: '#f97316' },
-  { id: 'rose', name: '玫瑰红', color: '#f43f5e' },
-  { id: 'cyan', name: '清新青', color: '#06b6d4' },
-  { id: 'amber', name: '琥珀金', color: '#f59e0b' },
-  { id: 'teal', name: '水鸭蓝', color: '#14b8a6' },
-  { id: 'indigo', name: '靛蓝', color: '#6366f1' },
-  { id: 'lime', name: '青柠', color: '#84cc16' },
-  { id: 'pink', name: '粉红', color: '#ec4899' },
-  { id: 'slate', name: '石板灰', color: '#64748b' },
-  { id: 'zinc', name: '锌灰', color: '#71717a' },
+// 主题配置 - 按色系分组
+const themeGroups = [
+  {
+    name: '蓝色系',
+    themes: [
+      { id: 'default', name: '天空蓝', color: '#3b82f6' },
+      { id: 'indigo', name: '靛蓝', color: '#6366f1' },
+      { id: 'cyan', name: '清新青', color: '#06b6d4' },
+      { id: 'sky', name: '晴空蓝', color: '#0ea5e9' },
+      { id: 'teal', name: '水鸭蓝', color: '#14b8a6' },
+    ]
+  },
+  {
+    name: '紫红系',
+    themes: [
+      { id: 'purple', name: '优雅紫', color: '#a855f7' },
+      { id: 'violet', name: '紫罗兰', color: '#8b5cf6' },
+      { id: 'fuchsia', name: '洋红', color: '#d946ef' },
+      { id: 'pink', name: '粉红', color: '#ec4899' },
+      { id: 'rose', name: '玫瑰红', color: '#f43f5e' },
+    ]
+  },
+  {
+    name: '暖色系',
+    themes: [
+      { id: 'red', name: '热情红', color: '#ef4444' },
+      { id: 'orange', name: '活力橙', color: '#f97316' },
+      { id: 'amber', name: '琥珀金', color: '#f59e0b' },
+      { id: 'yellow', name: '明黄', color: '#eab308' },
+    ]
+  },
+  {
+    name: '绿色系',
+    themes: [
+      { id: 'emerald', name: '翠绿', color: '#10b981' },
+      { id: 'green', name: '草绿', color: '#22c55e' },
+      { id: 'lime', name: '青柠', color: '#84cc16' },
+    ]
+  },
+  {
+    name: '中性色',
+    themes: [
+      { id: 'slate', name: '石板灰', color: '#64748b' },
+      { id: 'zinc', name: '锌灰', color: '#71717a' },
+      { id: 'stone', name: '暖灰', color: '#78716c' },
+      { id: 'neutral', name: '中性灰', color: '#737373' },
+    ]
+  }
 ]
 
 export function SettingsPage() {
@@ -40,27 +74,16 @@ export function SettingsPage() {
     setTheme,
     setDarkMode,
     accounts,
-    exportAccounts,
     importFromExportData
   } = useAccountsStore()
 
-  const [isExporting, setIsExporting] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [tempProxyUrl, setTempProxyUrl] = useState(proxyUrl)
+  const [themeExpanded, setThemeExpanded] = useState(false)
 
-  const handleExport = async () => {
-    setIsExporting(true)
-    try {
-      const data = exportAccounts()
-      const json = JSON.stringify(data, null, 2)
-      const filename = `kiro-accounts-${new Date().toISOString().slice(0, 10)}.json`
-      const success = await window.api.exportToFile(json, filename)
-      if (success) {
-        alert(`已导出 ${data.accounts.length} 个账号`)
-      }
-    } finally {
-      setIsExporting(false)
-    }
+  const handleExport = () => {
+    setShowExportDialog(true)
   }
 
   const handleImport = async () => {
@@ -125,26 +148,53 @@ export function SettingsPage() {
 
           {/* 主题颜色 */}
           <div className="pt-2 border-t">
-            <p className="font-medium mb-3">主题颜色</p>
-            <div className="flex flex-wrap gap-2">
-              {themes.map((t) => (
-                <button
-                  key={t.id}
-                  className={`group relative w-8 h-8 rounded-full transition-all ${
-                    theme === t.id 
-                      ? 'ring-2 ring-primary ring-offset-2 scale-110' 
-                      : 'hover:scale-110 hover:shadow-md'
-                  }`}
-                  style={{ backgroundColor: t.color }}
-                  onClick={() => setTheme(t.id)}
-                  title={t.name}
-                >
-                  <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-popover px-1.5 py-0.5 rounded shadow-sm border pointer-events-none z-10">
-                    {t.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <button 
+              className="flex items-center justify-between w-full text-left"
+              onClick={() => setThemeExpanded(!themeExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                <p className="font-medium">主题颜色</p>
+                {!themeExpanded && (
+                  <div 
+                    className="w-5 h-5 rounded-full ring-2 ring-primary ring-offset-1"
+                    style={{ backgroundColor: themeGroups.flatMap(g => g.themes).find(t => t.id === theme)?.color || '#3b82f6' }}
+                  />
+                )}
+              </div>
+              {themeExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+            {themeExpanded && (
+              <div className="space-y-3 mt-3">
+                {themeGroups.map((group) => (
+                  <div key={group.name} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-14 shrink-0">{group.name}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {group.themes.map((t) => (
+                        <button
+                          key={t.id}
+                          className={`group relative w-7 h-7 rounded-full transition-all ${
+                            theme === t.id 
+                              ? 'ring-2 ring-primary ring-offset-2 scale-110' 
+                              : 'hover:scale-110 hover:shadow-md'
+                          }`}
+                          style={{ backgroundColor: t.color }}
+                          onClick={() => setTheme(t.id)}
+                          title={t.name}
+                        >
+                          <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-popover px-1.5 py-0.5 rounded shadow-sm border pointer-events-none z-10">
+                            {t.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -378,11 +428,11 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">导出数据</p>
-              <p className="text-sm text-muted-foreground">将所有账号数据导出为 JSON 文件</p>
+              <p className="text-sm text-muted-foreground">支持 JSON、TXT、CSV、剪贴板等多种格式</p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+            <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
-              {isExporting ? '导出中...' : '导出'}
+              导出
             </Button>
           </div>
 
@@ -409,6 +459,14 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 导出对话框 */}
+      <ExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        accounts={Array.from(accounts.values())}
+        selectedCount={0}
+      />
     </div>
   )
 }

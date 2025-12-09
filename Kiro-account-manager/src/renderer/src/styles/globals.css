@@ -201,6 +201,86 @@
   --color-ring: #a1a1aa;
 }
 
+/* 晴空蓝主题 - 天空、清透 */
+.theme-sky {
+  --color-primary: #0ea5e9;
+  --color-ring: #0ea5e9;
+}
+.theme-sky.dark {
+  --color-primary: #38bdf8;
+  --color-ring: #38bdf8;
+}
+
+/* 紫罗兰主题 - 梦幻、高贵 */
+.theme-violet {
+  --color-primary: #8b5cf6;
+  --color-ring: #8b5cf6;
+}
+.theme-violet.dark {
+  --color-primary: #a78bfa;
+  --color-ring: #a78bfa;
+}
+
+/* 洋红主题 - 潮流、时尚 */
+.theme-fuchsia {
+  --color-primary: #d946ef;
+  --color-ring: #d946ef;
+}
+.theme-fuchsia.dark {
+  --color-primary: #e879f9;
+  --color-ring: #e879f9;
+}
+
+/* 热情红主题 - 热烈、醒目 */
+.theme-red {
+  --color-primary: #ef4444;
+  --color-ring: #ef4444;
+}
+.theme-red.dark {
+  --color-primary: #f87171;
+  --color-ring: #f87171;
+}
+
+/* 明黄主题 - 阳光、乐观 */
+.theme-yellow {
+  --color-primary: #eab308;
+  --color-ring: #eab308;
+}
+.theme-yellow.dark {
+  --color-primary: #facc15;
+  --color-ring: #facc15;
+}
+
+/* 草绿主题 - 自然、健康 */
+.theme-green {
+  --color-primary: #22c55e;
+  --color-ring: #22c55e;
+}
+.theme-green.dark {
+  --color-primary: #4ade80;
+  --color-ring: #4ade80;
+}
+
+/* 暖灰主题 - 柔和、自然 */
+.theme-stone {
+  --color-primary: #78716c;
+  --color-ring: #78716c;
+}
+.theme-stone.dark {
+  --color-primary: #a8a29e;
+  --color-ring: #a8a29e;
+}
+
+/* 中性灰主题 - 纯净、平衡 */
+.theme-neutral {
+  --color-primary: #737373;
+  --color-ring: #737373;
+}
+.theme-neutral.dark {
+  --color-primary: #a3a3a3;
+  --color-ring: #a3a3a3;
+}
+
 * {
   border-color: var(--color-border);
 }

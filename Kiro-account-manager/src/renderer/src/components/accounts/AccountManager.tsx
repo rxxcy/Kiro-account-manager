@@ -6,6 +6,7 @@ import { AddAccountDialog } from './AddAccountDialog'
 import { EditAccountDialog } from './EditAccountDialog'
 import { GroupManageDialog } from './GroupManageDialog'
 import { TagManageDialog } from './TagManageDialog'
+import { ExportDialog } from './ExportDialog'
 import { Button } from '../ui'
 import type { Account } from '@/types/account'
 import { ArrowLeft, Loader2 } from 'lucide-react'
@@ -17,7 +18,7 @@ interface AccountManagerProps {
 export function AccountManager({ onBack }: AccountManagerProps): React.ReactNode {
   const {
     isLoading,
-    exportAccounts,
+    accounts,
     importFromExportData,
     selectedIds
   } = useAccountsStore()
@@ -26,20 +27,21 @@ export function AccountManager({ onBack }: AccountManagerProps): React.ReactNode
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [showGroupDialog, setShowGroupDialog] = useState(false)
   const [showTagDialog, setShowTagDialog] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
   const [isFilterExpanded, setIsFilterExpanded] = useState(false)
 
-  // 导出（有选中则导出选中，否则导出全部）
-  const handleExport = async (): Promise<void> => {
-    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined
-    const data = exportAccounts(ids)
-    const count = ids?.length || data.accounts.length
-    const json = JSON.stringify(data, null, 2)
-    const filename = `kiro-accounts-${new Date().toISOString().slice(0, 10)}.json`
-
-    const success = await window.api.exportToFile(json, filename)
-    if (success) {
-      alert(`已导出 ${count} 个账号`)
+  // 获取要导出的账号列表
+  const getExportAccounts = () => {
+    const accountList = Array.from(accounts.values())
+    if (selectedIds.size > 0) {
+      return accountList.filter(acc => selectedIds.has(acc.id))
     }
+    return accountList
+  }
+
+  // 导出
+  const handleExport = (): void => {
+    setShowExportDialog(true)
   }
 
   // 导入
@@ -149,6 +151,14 @@ export function AccountManager({ onBack }: AccountManagerProps): React.ReactNode
       <TagManageDialog
         isOpen={showTagDialog}
         onClose={() => setShowTagDialog(false)}
+      />
+
+      {/* 导出对话框 */}
+      <ExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        accounts={getExportAccounts()}
+        selectedCount={selectedIds.size}
       />
     </div>
   )

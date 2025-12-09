@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAccountsStore } from '@/store/accounts'
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '../ui'
 import { 
@@ -15,7 +16,12 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle,
-  Monitor
+  Monitor,
+  Edit3,
+  Check,
+  X,
+  Users,
+  Search
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,7 +38,8 @@ export function MachineIdPage() {
     refreshCurrentMachineId,
     changeMachineId,
     restoreOriginalMachineId,
-    clearMachineIdHistory
+    clearMachineIdHistory,
+    bindMachineIdToAccount
   } = useAccountsStore()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -40,6 +47,10 @@ export function MachineIdPage() {
   const [osType, setOsType] = useState<string>('unknown')
   const [customMachineId, setCustomMachineId] = useState('')
   const [showHistory, setShowHistory] = useState(false)
+  const [showAccountBindings, setShowAccountBindings] = useState(false)
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
+  const [editingMachineId, setEditingMachineId] = useState('')
+  const [accountSearchQuery, setAccountSearchQuery] = useState('')
 
   // 初始化
   useEffect(() => {
@@ -130,6 +141,54 @@ export function MachineIdPage() {
     await window.api.machineIdRequestAdminRestart()
   }
 
+  // 生成随机 UUID
+  const generateRandomUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0
+      const v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
+  }
+
+  // 开始编辑账户机器码
+  const startEditAccountMachineId = (accountId: string) => {
+    setEditingAccountId(accountId)
+    setEditingMachineId(accountMachineIds[accountId] || '')
+  }
+
+  // 保存账户机器码
+  const saveAccountMachineId = (accountId: string) => {
+    if (editingMachineId.trim()) {
+      bindMachineIdToAccount(accountId, editingMachineId.trim())
+    }
+    setEditingAccountId(null)
+    setEditingMachineId('')
+  }
+
+  // 取消编辑
+  const cancelEditAccountMachineId = () => {
+    setEditingAccountId(null)
+    setEditingMachineId('')
+  }
+
+  // 为账户生成随机机器码
+  const randomizeAccountMachineId = (accountId: string) => {
+    const newMachineId = generateRandomUUID()
+    bindMachineIdToAccount(accountId, newMachineId)
+    if (editingAccountId === accountId) {
+      setEditingMachineId(newMachineId)
+    }
+  }
+
+  // 删除账户机器码绑定
+  const removeAccountMachineId = (accountId: string) => {
+    const { accountMachineIds: currentBindings } = useAccountsStore.getState()
+    const newBindings = { ...currentBindings }
+    delete newBindings[accountId]
+    useAccountsStore.setState({ accountMachineIds: newBindings })
+    useAccountsStore.getState().saveToStorage()
+  }
+
   // 格式化时间
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('zh-CN')
@@ -202,6 +261,12 @@ export function MachineIdPage() {
                 <span className="text-muted-foreground">无法获取</span>
               )}
             </div>
+            {/* 最后修改时间 */}
+            {machineIdHistory.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                最后修改: {formatTime(machineIdHistory[machineIdHistory.length - 1].timestamp)}
+              </p>
+            )}
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -402,95 +467,376 @@ export function MachineIdPage() {
         </CardContent>
       </Card>
 
-      {/* 绑定的账户机器码列表 */}
-      {machineIdConfig.bindMachineIdToAccount && boundAccountCount > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Link2 className="h-4 w-4" />
-              账户绑定列表
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {Object.entries(accountMachineIds).map(([accountId, machineId]) => {
-                const account = accounts.get(accountId)
-                return (
-                  <div key={accountId} className="flex items-center justify-between p-2 bg-muted rounded">
-                    <span className="text-sm truncate max-w-[200px]">
-                      {account?.email || accountId}
-                    </span>
-                    <code className="text-xs text-muted-foreground truncate max-w-[300px]">
-                      {machineId}
-                    </code>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 历史记录 */}
+      {/* 账户机器码管理按钮 */}
       <Card>
-        <CardHeader>
+        <CardContent className="py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <History className="h-4 w-4" />
-              变更历史
-              <Badge variant="secondary">{machineIdHistory.length}</Badge>
-            </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">账户机器码管理</p>
+                <p className="text-sm text-muted-foreground">
+                  查看和管理每个账户绑定的机器码
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setShowAccountBindings(true)}>
+              打开管理
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 账户机器码管理对话框 */}
+      {showAccountBindings && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 背景遮罩 */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAccountBindings(false)}
+          />
+          
+          {/* 对话框内容 */}
+          <div className="relative bg-background rounded-xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">账户机器码管理</h2>
+                <Badge variant="secondary">{accounts.size} 个账户</Badge>
+              </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowHistory(!showHistory)}
+                className="h-8 w-8 p-0"
+                onClick={() => setShowAccountBindings(false)}
               >
-                {showHistory ? '收起' : '展开'}
+                <X className="h-4 w-4" />
               </Button>
-              {machineIdHistory.length > 0 && (
+            </div>
+            
+            {/* 搜索框 */}
+            <div className="px-4 pt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={accountSearchQuery}
+                  onChange={(e) => setAccountSearchQuery(e.target.value)}
+                  placeholder="搜索账户..."
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {accountSearchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => setAccountSearchQuery('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* 账户列表 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {Array.from(accounts.values())
+                .filter((account) => {
+                  if (!accountSearchQuery.trim()) return true
+                  const query = accountSearchQuery.toLowerCase()
+                  return (
+                    account.email?.toLowerCase().includes(query) ||
+                    account.nickname?.toLowerCase().includes(query) ||
+                    accountMachineIds[account.id]?.toLowerCase().includes(query)
+                  )
+                })
+                .map((account) => {
+                const boundMachineId = accountMachineIds[account.id]
+                const isEditing = editingAccountId === account.id
+                
+                return (
+                  <div key={account.id} className="p-3 bg-muted rounded-lg">
+                    {/* 账户信息行 */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                          {(account.nickname || account.email || '?')[0].toUpperCase()}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm truncate max-w-[200px]">
+                            {account.nickname || account.email}
+                          </span>
+                          {account.nickname && account.email && (
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {account.email}
+                            </span>
+                          )}
+                        </div>
+                        {boundMachineId && (
+                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                            已绑定
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!isEditing ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => startEditAccountMachineId(account.id)}
+                              title="编辑"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => randomizeAccountMachineId(account.id)}
+                              title="随机"
+                            >
+                              <Shuffle className="h-3.5 w-3.5" />
+                            </Button>
+                            {boundMachineId && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => copyToClipboard(boundMachineId)}
+                                  title="复制"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                  onClick={() => removeAccountMachineId(account.id)}
+                                  title="删除"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => saveAccountMachineId(account.id)}
+                            >
+                              <Check className="h-3.5 w-3.5 mr-1" />
+                              保存
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={cancelEditAccountMachineId}
+                            >
+                              取消
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => randomizeAccountMachineId(account.id)}
+                              title="随机"
+                            >
+                              <Shuffle className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* 机器码显示/编辑 */}
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingMachineId}
+                        onChange={(e) => setEditingMachineId(e.target.value)}
+                        placeholder="输入 UUID 格式机器码"
+                        className="w-full px-2 py-1.5 text-xs font-mono bg-background border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        autoFocus
+                      />
+                    ) : boundMachineId ? (
+                      <div className="flex items-center gap-2 px-2 py-1.5 bg-background rounded border">
+                        <code className="text-xs font-mono flex-1">{boundMachineId}</code>
+                      </div>
+                    ) : (
+                      <div className="px-2 py-1.5 bg-background/50 rounded border border-dashed text-center">
+                        <span className="text-xs text-muted-foreground">未绑定</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              
+              {accounts.size === 0 && (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground">暂无账户</p>
+                  <p className="text-sm text-muted-foreground">请先添加账户</p>
+                </div>
+              )}
+              
+              {accounts.size > 0 && accountSearchQuery && 
+                Array.from(accounts.values()).filter((account) => {
+                  const query = accountSearchQuery.toLowerCase()
+                  return (
+                    account.email?.toLowerCase().includes(query) ||
+                    account.nickname?.toLowerCase().includes(query) ||
+                    accountMachineIds[account.id]?.toLowerCase().includes(query)
+                  )
+                }).length === 0 && (
+                <div className="text-center py-8">
+                  <Search className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-muted-foreground">未找到匹配的账户</p>
+                  <p className="text-sm text-muted-foreground">尝试其他关键词</p>
+                </div>
+              )}
+            </div>
+            
+            {/* 底部提示 */}
+            <div className="px-6 py-3 border-t bg-muted/50 text-xs text-muted-foreground">
+              💡 提示：绑定机器码后，切换到该账户时会自动应用对应的机器码
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 历史记录按钮 */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <History className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">变更历史</p>
+                <p className="text-sm text-muted-foreground">
+                  共 {machineIdHistory.length} 条记录
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setShowHistory(true)}>
+              查看历史
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 历史记录对话框 */}
+      {showHistory && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 背景遮罩 */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowHistory(false)}
+          />
+          
+          {/* 对话框内容 */}
+          <div className="relative bg-background rounded-xl shadow-2xl w-[550px] max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">变更历史</h2>
+                <Badge variant="secondary">{machineIdHistory.length} 条</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                {machineIdHistory.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={clearMachineIdHistory}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    清空
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={clearMachineIdHistory}
-                  className="text-destructive hover:text-destructive"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setShowHistory(false)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
+              </div>
+            </div>
+            
+            {/* 历史列表 */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {machineIdHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {[...machineIdHistory].reverse().map((entry, index) => (
+                    <div key={entry.id} className="p-3 bg-muted rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">#{machineIdHistory.length - index}</span>
+                          <Badge 
+                            variant="secondary" 
+                            className={cn(
+                              "text-xs whitespace-nowrap",
+                              entry.action === 'initial' && "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+                              entry.action === 'manual' && "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+                              entry.action === 'auto_switch' && "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+                              entry.action === 'restore' && "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+                              entry.action === 'bind' && "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
+                            )}
+                          >
+                            {entry.action === 'initial' && '初始'}
+                            {entry.action === 'manual' && '手动'}
+                            {entry.action === 'auto_switch' && '自动'}
+                            {entry.action === 'restore' && '恢复'}
+                            {entry.action === 'bind' && '绑定'}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTime(entry.timestamp)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-background rounded border">
+                        <code className="text-sm flex-1 font-mono">{entry.machineId}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 shrink-0"
+                          onClick={() => copyToClipboard(entry.machineId)}
+                          title="复制"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      {entry.accountId && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          关联账户: {accounts.get(entry.accountId)?.nickname || accounts.get(entry.accountId)?.email || entry.accountId}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <History className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground">暂无变更记录</p>
+                  <p className="text-sm text-muted-foreground">机器码变更后将自动记录</p>
+                </div>
               )}
             </div>
           </div>
-        </CardHeader>
-        {showHistory && (
-          <CardContent>
-            {machineIdHistory.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {[...machineIdHistory].reverse().map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {entry.action === 'initial' && '初始'}
-                        {entry.action === 'manual' && '手动'}
-                        {entry.action === 'auto_switch' && '自动'}
-                        {entry.action === 'restore' && '恢复'}
-                        {entry.action === 'bind' && '绑定'}
-                      </Badge>
-                      <code className="text-xs truncate max-w-[200px]">{entry.machineId}</code>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(entry.timestamp)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm text-center py-4">
-                暂无变更记录
-              </p>
-            )}
-          </CardContent>
-        )}
-      </Card>
+        </div>,
+        document.body
+      )}
 
       {/* 平台说明 */}
       <Card className="border-dashed">

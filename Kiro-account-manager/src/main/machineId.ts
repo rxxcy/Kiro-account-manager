@@ -3,7 +3,7 @@
  * 支持 Windows、macOS、Linux 三大平台
  */
 
-import { exec, execSync, spawn } from 'child_process'
+import { exec, execSync } from 'child_process'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -143,38 +143,62 @@ export async function requestAdminRestart(): Promise<boolean> {
   const osType = getOSType()
   const appPath = app.getPath('exe')
 
+  console.log('[MachineId] Requesting admin restart, appPath:', appPath)
+
   try {
     switch (osType) {
-      case 'windows':
-        // Windows: 使用 runas 提升权限
-        spawn('powershell', ['-Command', `Start-Process -FilePath "${appPath}" -Verb RunAs`], {
-          detached: true,
-          stdio: 'ignore'
+      case 'windows': {
+        // Windows: 使用 cmd 启动 PowerShell 执行 Start-Process
+        // 这种方式更可靠，避免参数解析问题
+        const command = `powershell -NoProfile -Command "Start-Process -FilePath \\"${appPath.replace(/\\/g, '\\\\')}\\" -Verb RunAs"`
+        console.log('[MachineId] Running command:', command)
+        
+        exec(command, { windowsHide: true }, (error) => {
+          if (error) {
+            console.error('[MachineId] Admin restart failed:', error)
+          }
         })
-        app.quit()
+        
+        // 延迟退出，确保命令有时间执行
+        setTimeout(() => {
+          console.log('[MachineId] Quitting app...')
+          app.quit()
+        }, 1000)
         return true
+      }
 
-      case 'macos':
+      case 'macos': {
         // macOS: 使用 osascript 请求管理员权限
-        const script = `do shell script "open -n '${appPath}'" with administrator privileges`
-        spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore' })
-        app.quit()
+        const escapedPath = appPath.replace(/'/g, "\\'")
+        const script = `do shell script "open -n '${escapedPath}'" with administrator privileges`
+        exec(`osascript -e '${script}'`, (error) => {
+          if (error) {
+            console.error('[MachineId] Admin restart failed:', error)
+          }
+        })
+        setTimeout(() => app.quit(), 1000)
         return true
+      }
 
-      case 'linux':
+      case 'linux': {
         // Linux: 尝试使用 pkexec 或 gksudo
         const sudoCommands = ['pkexec', 'gksudo', 'kdesudo']
         for (const cmd of sudoCommands) {
           try {
             execSync(`which ${cmd}`, { stdio: 'ignore' })
-            spawn(cmd, [appPath], { detached: true, stdio: 'ignore' })
-            app.quit()
+            exec(`${cmd} "${appPath}"`, (error) => {
+              if (error) {
+                console.error('[MachineId] Admin restart failed:', error)
+              }
+            })
+            setTimeout(() => app.quit(), 1000)
             return true
           } catch {
             continue
           }
         }
         return false
+      }
 
       default:
         return false

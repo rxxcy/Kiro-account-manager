@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { useAccountsStore } from '@/store/accounts'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui'
-import { Users, CheckCircle, AlertTriangle, Clock, Zap, Shield, Fingerprint, FolderPlus, Tag } from 'lucide-react'
+import { Users, CheckCircle, AlertTriangle, Clock, Zap, Shield, Fingerprint, FolderPlus, Tag, TrendingUp, Activity, BarChart3 } from 'lucide-react'
 import kiroLogo from '@/assets/kiro-high-resolution-logo-transparent.png'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +21,37 @@ const getSubscriptionColor = (type: string, title?: string): string => {
 export function HomePage() {
   const { accounts, getStats, darkMode } = useAccountsStore()
   const stats = getStats()
+
+  // 计算额度统计
+  const usageStats = useMemo(() => {
+    let totalLimit = 0
+    let totalUsed = 0
+    let validAccountCount = 0
+
+    Array.from(accounts.values()).forEach(account => {
+      // 只统计正常状态的账号
+      if (account.status === 'active' && account.usage) {
+        const limit = account.usage.limit ?? 0
+        const used = account.usage.current ?? 0
+        if (limit > 0) {
+          totalLimit += limit
+          totalUsed += used
+          validAccountCount++
+        }
+      }
+    })
+
+    const remaining = totalLimit - totalUsed
+    const percentUsed = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0
+
+    return {
+      totalLimit,
+      totalUsed,
+      remaining,
+      percentUsed,
+      validAccountCount
+    }
+  }, [accounts])
 
   const statCards = [
     { 
@@ -91,6 +123,71 @@ export function HomePage() {
           )
         })}
       </div>
+
+      {/* Usage Stats */}
+      {usageStats.validAccountCount > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              额度统计
+              <span className="text-xs font-normal text-muted-foreground">
+                (基于 {usageStats.validAccountCount} 个有效账号)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs text-muted-foreground">总额度</span>
+                </div>
+                <p className="text-xl font-bold">{usageStats.totalLimit.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="h-4 w-4 text-orange-500" />
+                  <span className="text-xs text-muted-foreground">已使用</span>
+                </div>
+                <p className="text-xl font-bold">{usageStats.totalUsed.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-muted-foreground">剩余额度</span>
+                </div>
+                <p className="text-xl font-bold text-green-600">{usageStats.remaining.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart3 className="h-4 w-4 text-purple-500" />
+                  <span className="text-xs text-muted-foreground">使用率</span>
+                </div>
+                <p className="text-xl font-bold">{usageStats.percentUsed.toFixed(1)}%</p>
+              </div>
+            </div>
+            {/* 进度条 */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>总体使用进度</span>
+                <span>{usageStats.totalUsed.toLocaleString()} / {usageStats.totalLimit.toLocaleString()}</span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    usageStats.percentUsed < 50 && "bg-green-500",
+                    usageStats.percentUsed >= 50 && usageStats.percentUsed < 80 && "bg-yellow-500",
+                    usageStats.percentUsed >= 80 && "bg-red-500"
+                  )}
+                  style={{ width: `${Math.min(usageStats.percentUsed, 100)}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Current Account */}
       {activeAccount && (

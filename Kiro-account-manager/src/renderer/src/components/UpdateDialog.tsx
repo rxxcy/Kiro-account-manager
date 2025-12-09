@@ -133,11 +133,10 @@ export function UpdateDialog() {
                 新版本已发布，建议立即更新以获得最新功能和修复。
               </p>
               {updateInfo?.releaseNotes && (
-                <div className="bg-muted/50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                    {updateInfo.releaseNotes}
-                  </p>
-                </div>
+                <div 
+                  className="bg-muted/50 rounded-lg p-3 max-h-32 overflow-y-auto text-xs text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:my-1 [&_hr]:my-2"
+                  dangerouslySetInnerHTML={{ __html: updateInfo.releaseNotes }}
+                />
               )}
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={handleClose}>

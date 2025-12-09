@@ -5,6 +5,7 @@ import kiroLogo from '@/assets/kiro-high-resolution-logo-transparent.png'
 import alipayQR from '@/assets/支付宝支付.png'
 import wechatQR from '@/assets/微信支付.png'
 import groupQR from '@/assets/交流群.png'
+import authorAvatar from '@/assets/author-avatar.png'
 import { useAccountsStore } from '@/store/accounts'
 import { cn } from '@/lib/utils'
 
@@ -348,9 +349,11 @@ export function AboutPage() {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold">
-                C
-              </div>
+              <img 
+                src={authorAvatar}
+                alt="chaogei666"
+                className="w-10 h-10 rounded-full"
+              />
               <p className="font-medium">chaogei666</p>
             </div>
             <a 
