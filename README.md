@@ -250,7 +250,7 @@ npx electron-builder --linux --arm64
 
 ## 👨‍💻 作者
 
-- **GitHub**: [chaogei666](https://github.com/chaogei666)
+- **GitHub**: [chaogei](https://github.com/chaogei)
 - **项目主页**: [Kiro-account-manager](https://github.com/chaogei/Kiro-account-manager)
 
 ---
