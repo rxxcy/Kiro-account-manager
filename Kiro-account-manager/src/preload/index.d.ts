@@ -8,6 +8,7 @@ interface AccountData {
   autoRefreshEnabled: boolean
   autoRefreshInterval: number
   autoRefreshConcurrency?: number
+  autoRefreshSyncInfo?: boolean
   statusCheckInterval: number
   privacyMode?: boolean
   proxyEnabled?: boolean
@@ -17,6 +18,7 @@ interface AccountData {
   autoSwitchInterval?: number
   theme?: string
   darkMode?: boolean
+  language?: 'auto' | 'en' | 'zh'
   // 机器码管理
   machineIdConfig?: {
     autoSwitchOnAccountChange: boolean
@@ -125,6 +127,7 @@ interface KiroApi {
   backgroundBatchRefresh: (accounts: Array<{
     id: string
     email: string
+    idp?: string
     credentials: {
       refreshToken: string
       clientId?: string
@@ -132,8 +135,9 @@ interface KiroApi {
       region?: string
       authMethod?: string
       accessToken?: string
+      provider?: string
     }
-  }>, concurrency?: number) => Promise<{ success: boolean; completed: number; successCount: number; failedCount: number }>
+  }>, concurrency?: number, syncInfo?: boolean) => Promise<{ success: boolean; completed: number; successCount: number; failedCount: number }>
   onBackgroundRefreshProgress: (callback: (data: { completed: number; total: number; success: number; failed: number }) => void) => () => void
   onBackgroundRefreshResult: (callback: (data: { id: string; success: boolean; data?: unknown; error?: string }) => void) => () => void
   

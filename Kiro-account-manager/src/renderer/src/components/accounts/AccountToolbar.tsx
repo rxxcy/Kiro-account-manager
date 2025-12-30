@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Badge } from '../ui'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import { AccountFilterPanel } from './AccountFilter'
 import {
   Search,
@@ -146,6 +147,8 @@ export function AccountToolbar({
     }
   }
 
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
   const stats = getStats()
   const filteredCount = getFilteredAccounts().length
   const selectedCount = selectedIds.size
@@ -170,7 +173,7 @@ export function AccountToolbar({
 
   const handleBatchDelete = (): void => {
     if (selectedCount === 0) return
-    if (confirm(`确定要删除选中的 ${selectedCount} 个账号吗？`)) {
+    if (confirm(isEn ? `Delete ${selectedCount} selected accounts?` : `确定要删除选中的 ${selectedCount} 个账号吗？`)) {
       removeAccounts(Array.from(selectedIds))
     }
   }
@@ -192,7 +195,7 @@ export function AccountToolbar({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="搜索账号..."
+            placeholder={isEn ? 'Search accounts...' : '搜索账号...'}
             className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             value={filter.search ?? ''}
             onChange={(e) => handleSearch(e.target.value)}
@@ -202,15 +205,15 @@ export function AccountToolbar({
         {/* 主要操作按钮 */}
         <Button onClick={onAddAccount}>
           <Plus className="h-4 w-4 mr-1" />
-          添加账号
+          {isEn ? 'Add' : '添加账号'}
         </Button>
         <Button variant="outline" onClick={onImport}>
           <Upload className="h-4 w-4 mr-1" />
-          导入
+          {isEn ? 'Import' : '导入'}
         </Button>
         <Button variant="outline" onClick={onExport}>
           <Download className="h-4 w-4 mr-1" />
-          导出
+          {isEn ? 'Export' : '导出'}
         </Button>
       </div>
 
@@ -219,14 +222,14 @@ export function AccountToolbar({
         {/* 左侧：统计信息 */}
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
-            共 <span className="font-medium text-foreground">{stats.total}</span> 个账号
+            {isEn ? '' : '共 '}<span className="font-medium text-foreground">{stats.total}</span> {isEn ? 'accounts' : '个账号'}
             {filteredCount !== stats.total && (
-              <span>，已筛选 <span className="font-medium text-foreground">{filteredCount}</span> 个</span>
+              <span>{isEn ? ', ' : '，已筛选 '}<span className="font-medium text-foreground">{filteredCount}</span> {isEn ? 'filtered' : '个'}</span>
             )}
           </span>
           {stats.expiringSoonCount > 0 && (
             <Badge variant="destructive" className="gap-1">
-              {stats.expiringSoonCount} 个即将到期
+              {stats.expiringSoonCount} {isEn ? 'expiring' : '个即将到期'}
             </Badge>
           )}
         </div>
@@ -246,10 +249,10 @@ export function AccountToolbar({
                   onManageGroups()
                 }
               }}
-              title={selectedCount > 0 ? "批量设置分组" : "管理分组"}
+              title={selectedCount > 0 ? (isEn ? 'Set group' : '批量设置分组') : (isEn ? 'Manage groups' : '管理分组')}
             >
               <FolderPlus className="h-4 w-4 mr-1" />
-              分组
+              {isEn ? 'Group' : '分组'}
               {selectedCount > 0 && <ChevronDown className="h-3 w-3 ml-1" />}
             </Button>
             
@@ -257,7 +260,7 @@ export function AccountToolbar({
               <div className="absolute left-0 top-full mt-2 z-50 min-w-[200px] bg-popover border rounded-lg shadow-lg p-2">
                 <div className="absolute -top-2 left-4 w-4 h-4 bg-popover border-l border-t rotate-45" />
                 <div className="text-xs text-muted-foreground px-2 py-1 mb-1">
-                  已选 {selectedCount} 个账户
+                  {isEn ? `${selectedCount} selected` : `已选 ${selectedCount} 个账户`}
                 </div>
                 <div className="border-t my-1" />
                 
@@ -267,7 +270,7 @@ export function AccountToolbar({
                   onClick={() => handleMoveToGroup(undefined)}
                 >
                   <X className="h-4 w-4 text-muted-foreground" />
-                  <span>移除分组</span>
+                  <span>{isEn ? 'Remove group' : '移除分组'}</span>
                   {(() => {
                     const { groupCounts, selectedAccounts } = getSelectedAccountsGroupStatus()
                     const noGroupCount = groupCounts.get(undefined) || 0
@@ -307,7 +310,7 @@ export function AccountToolbar({
                 
                 {groups.size === 0 && (
                   <div className="text-sm text-muted-foreground px-2 py-2 text-center">
-                    暂无分组
+                    {isEn ? 'No groups' : '暂无分组'}
                   </div>
                 )}
                 
@@ -320,7 +323,7 @@ export function AccountToolbar({
                   }}
                 >
                   <Plus className="h-4 w-4" />
-                  <span>管理分组</span>
+                  <span>{isEn ? 'Manage groups' : '管理分组'}</span>
                 </button>
               </div>
             )}
@@ -339,10 +342,10 @@ export function AccountToolbar({
                   onManageTags()
                 }
               }}
-              title={selectedCount > 0 ? "批量设置标签" : "管理标签"}
+              title={selectedCount > 0 ? (isEn ? 'Set tags' : '批量设置标签') : (isEn ? 'Manage tags' : '管理标签')}
             >
               <Tag className="h-4 w-4 mr-1" />
-              标签
+              {isEn ? 'Tags' : '标签'}
               {selectedCount > 0 && <ChevronDown className="h-3 w-3 ml-1" />}
             </Button>
             
@@ -350,7 +353,7 @@ export function AccountToolbar({
               <div className="absolute left-0 top-full mt-2 z-50 min-w-[220px] bg-popover border rounded-lg shadow-lg p-2">
                 <div className="absolute -top-2 left-4 w-4 h-4 bg-popover border-l border-t rotate-45" />
                 <div className="text-xs text-muted-foreground px-2 py-1 mb-1">
-                  已选 {selectedCount} 个账户（可多选）
+                  {isEn ? `${selectedCount} selected (multi)` : `已选 ${selectedCount} 个账户（可多选）`}
                 </div>
                 <div className="border-t my-1" />
                 
@@ -389,7 +392,7 @@ export function AccountToolbar({
                 
                 {tags.size === 0 && (
                   <div className="text-sm text-muted-foreground px-2 py-2 text-center">
-                    暂无标签
+                    {isEn ? 'No tags' : '暂无标签'}
                   </div>
                 )}
                 
@@ -402,7 +405,7 @@ export function AccountToolbar({
                   }}
                 >
                   <Plus className="h-4 w-4" />
-                  <span>管理标签</span>
+                  <span>{isEn ? 'Manage tags' : '管理标签'}</span>
                 </button>
               </div>
             )}
@@ -411,14 +414,14 @@ export function AccountToolbar({
             variant={privacyMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setPrivacyMode(!privacyMode)}
-            title={privacyMode ? "关闭隐私模式" : "开启隐私模式"}
+            title={privacyMode ? (isEn ? 'Disable privacy' : '关闭隐私模式') : (isEn ? 'Enable privacy' : '开启隐私模式')}
           >
             {privacyMode ? (
               <EyeOff className="h-4 w-4 mr-1" />
             ) : (
               <Eye className="h-4 w-4 mr-1" />
             )}
-            隐私
+            {isEn ? 'Privacy' : '隐私'}
           </Button>
           {/* 筛选按钮与气泡 */}
           <div className="relative">
@@ -426,10 +429,10 @@ export function AccountToolbar({
               variant={isFilterExpanded ? "default" : "ghost"}
               size="sm"
               onClick={onToggleFilter}
-              title="展开/收起高级筛选"
+              title={isEn ? 'Toggle filter' : '展开/收起高级筛选'}
             >
               <Filter className="h-4 w-4 mr-1" />
-              筛选
+              {isEn ? 'Filter' : '筛选'}
             </Button>
             {/* 筛选气泡面板 */}
             {isFilterExpanded && (
@@ -449,14 +452,14 @@ export function AccountToolbar({
             size="sm"
             onClick={handleBatchCheck}
             disabled={isChecking || selectedCount === 0}
-            title="检查账户信息：刷新用量、订阅详情、封禁状态等"
+            title={isEn ? 'Check account info' : '检查账户信息：刷新用量、订阅详情、封禁状态等'}
           >
             {isChecking ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-1" />
             )}
-            检查
+            {isEn ? 'Check' : '检查'}
           </Button>
           <Button
             variant="ghost"
@@ -464,24 +467,24 @@ export function AccountToolbar({
             className="text-destructive hover:text-destructive"
             onClick={handleBatchDelete}
             disabled={selectedCount === 0}
-            title="删除选中的账号"
+            title={isEn ? 'Delete selected' : '删除选中的账号'}
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            删除
+            {isEn ? 'Delete' : '删除'}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleBatchRefresh}
             disabled={isRefreshing || selectedCount === 0}
-            title="刷新 Token：仅刷新访问令牌，用于保持登录状态"
+            title={isEn ? 'Refresh Token' : '刷新 Token：仅刷新访问令牌，用于保持登录状态'}
           >
             {isRefreshing ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-1" />
             )}
-            刷新
+            {isEn ? 'Refresh' : '刷新'}
           </Button>
 
           <div className="w-px h-6 bg-border mx-2" />
@@ -497,7 +500,7 @@ export function AccountToolbar({
             ) : (
               <Square className="h-4 w-4 mr-1" />
             )}
-            {selectedCount > 0 ? `已选 ${selectedCount}` : '全选'}
+            {selectedCount > 0 ? (isEn ? `${selectedCount} sel` : `已选 ${selectedCount}`) : (isEn ? 'All' : '全选')}
           </Button>
         </div>
       </div>

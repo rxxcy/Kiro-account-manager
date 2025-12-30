@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '../ui'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import type { AccountTag } from '@/types/account'
 import { X, Plus, Edit2, Trash2, Tag, Check, Palette } from 'lucide-react'
 
@@ -57,6 +58,8 @@ function toRgba(argbColor: string): string {
 
 export function TagManageDialog({ isOpen, onClose }: TagManageDialogProps): React.ReactNode {
   const { tags, accounts, addTag, updateTag, removeTag, addTagToAccounts, removeTagFromAccounts } = useAccountsStore()
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
 
   // 编辑状态
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -150,7 +153,7 @@ export function TagManageDialog({ isOpen, onClose }: TagManageDialogProps): Reac
         <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            标签管理
+            {isEn ? 'Tag Management' : '标签管理'}
           </CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -160,9 +163,9 @@ export function TagManageDialog({ isOpen, onClose }: TagManageDialogProps): Reac
         <CardContent className="flex-1 overflow-auto space-y-4">
           {/* 统计信息 */}
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>共 {tagList.length} 个标签</span>
+            <span>{isEn ? `${tagList.length} tags` : `共 ${tagList.length} 个标签`}</span>
             <span>•</span>
-            <span>{getUntaggedCount()} 个未标记账号</span>
+            <span>{isEn ? `${getUntaggedCount()} untagged` : `${getUntaggedCount()} 个未标记账号`}</span>
           </div>
 
           {/* 新建标签 */}
@@ -182,7 +185,7 @@ export function TagManageDialog({ isOpen, onClose }: TagManageDialogProps): Reac
                 </div>
                 <input
                   type="text"
-                  placeholder="标签名称"
+                  placeholder={isEn ? 'Tag name' : '标签名称'}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -224,18 +227,18 @@ export function TagManageDialog({ isOpen, onClose }: TagManageDialogProps): Reac
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setIsCreating(false)}>
-                  取消
+                  {isEn ? 'Cancel' : '取消'}
                 </Button>
                 <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>
                   <Check className="h-4 w-4 mr-1" />
-                  创建
+                  {isEn ? 'Create' : '创建'}
                 </Button>
               </div>
             </div>
           ) : (
             <Button variant="outline" className="w-full" onClick={() => setIsCreating(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              新建标签
+              {isEn ? 'New Tag' : '新建标签'}
             </Button>
           )}
 

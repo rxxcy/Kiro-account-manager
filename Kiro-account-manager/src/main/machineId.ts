@@ -326,6 +326,7 @@ async function setLinuxMachineId(newMachineId: string): Promise<MachineIdResult>
 
   const paths = ['/etc/machine-id', '/var/lib/dbus/machine-id']
 
+  // 首先尝试直接写入（如果有权限）
   for (const filePath of paths) {
     try {
       if (fs.existsSync(filePath)) {
@@ -335,12 +336,69 @@ async function setLinuxMachineId(newMachineId: string): Promise<MachineIdResult>
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : ''
       if (errorMsg.includes('EACCES') || errorMsg.includes('EPERM')) {
-        return { success: false, error: '需要管理员权限', requiresAdmin: true }
+        // 需要管理员权限，尝试使用 pkexec 直接写入
+        const pkexecResult = await setLinuxMachineIdWithPkexec(rawId, filePath)
+        if (pkexecResult.success) {
+          return { success: true, machineId: newMachineId }
+        }
+        // 如果 pkexec 失败，继续尝试其他路径或返回错误
+        if (pkexecResult.error?.includes('用户取消') || pkexecResult.error?.includes('dismissed')) {
+          return { success: false, error: '用户取消了授权' }
+        }
       }
     }
   }
 
   return { success: false, error: '设置Linux机器码失败' }
+}
+
+/**
+ * 使用 pkexec 以 root 权限写入 Linux 机器码
+ * 这种方式不需要重启整个应用，避免了 Wayland 显示授权问题
+ */
+async function setLinuxMachineIdWithPkexec(rawId: string, filePath: string): Promise<MachineIdResult> {
+  const sudoCommands = ['pkexec', 'gksudo', 'kdesudo']
+  
+  for (const cmd of sudoCommands) {
+    try {
+      // 检查命令是否存在
+      execSync(`which ${cmd}`, { stdio: 'ignore' })
+      
+      // 使用 pkexec/gksudo 调用 tee 命令写入文件
+      // tee 命令可以以 root 权限写入文件
+      const command = `echo "${rawId}" | ${cmd} tee "${filePath}" > /dev/null`
+      console.log(`[MachineId] Running: ${cmd} to write machine-id`)
+      
+      await execAsync(command)
+      
+      // 如果还有 /var/lib/dbus/machine-id，也更新它
+      if (filePath === '/etc/machine-id') {
+        const dbusPath = '/var/lib/dbus/machine-id'
+        if (fs.existsSync(dbusPath)) {
+          try {
+            const dbusCommand = `echo "${rawId}" | ${cmd} tee "${dbusPath}" > /dev/null`
+            await execAsync(dbusCommand)
+          } catch {
+            // 忽略 dbus machine-id 更新失败
+          }
+        }
+      }
+      
+      return { success: true, machineId: rawId }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : ''
+      console.log(`[MachineId] ${cmd} failed:`, errorMsg)
+      
+      // 用户取消授权
+      if (errorMsg.includes('dismissed') || errorMsg.includes('Not authorized') || errorMsg.includes('126')) {
+        return { success: false, error: '用户取消了授权' }
+      }
+      // 继续尝试下一个命令
+      continue
+    }
+  }
+  
+  return { success: false, error: '没有可用的权限提升工具', requiresAdmin: true }
 }
 
 /**

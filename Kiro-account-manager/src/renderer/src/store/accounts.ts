@@ -59,6 +59,7 @@ interface AccountsState {
   autoRefreshEnabled: boolean
   autoRefreshInterval: number // 分钟
   autoRefreshConcurrency: number // 自动刷新并发数
+  autoRefreshSyncInfo: boolean // 刷新时是否同步检测账户信息（用量、订阅、封禁状态）
   statusCheckInterval: number // 分钟
 
   // 隐私模式
@@ -79,6 +80,9 @@ interface AccountsState {
   // 主题设置
   theme: string // 主题名称: default, purple, emerald, orange, rose, cyan, amber
   darkMode: boolean // 深色模式
+
+  // 语言设置
+  language: 'auto' | 'en' | 'zh' // auto: 跟随系统
 
   // 机器码管理
   machineIdConfig: {
@@ -160,6 +164,7 @@ interface AccountsActions {
   // 设置
   setAutoRefresh: (enabled: boolean, interval?: number) => void
   setAutoRefreshConcurrency: (concurrency: number) => void
+  setAutoRefreshSyncInfo: (enabled: boolean) => void
   setStatusCheckInterval: (interval: number) => void
 
   // 隐私模式
@@ -174,6 +179,9 @@ interface AccountsActions {
   setTheme: (theme: string) => void
   setDarkMode: (enabled: boolean) => void
   applyTheme: () => void
+
+  // 语言设置
+  setLanguage: (language: 'auto' | 'en' | 'zh') => void
 
   // 自动换号
   setAutoSwitch: (enabled: boolean, threshold?: number, interval?: number) => void
@@ -235,6 +243,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
   autoRefreshEnabled: true,
   autoRefreshInterval: 5,
   autoRefreshConcurrency: 100,
+  autoRefreshSyncInfo: true,
   statusCheckInterval: 60,
   privacyMode: false,
   proxyEnabled: false,
@@ -245,6 +254,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
   batchImportConcurrency: 100,
   theme: 'default',
   darkMode: false,
+  language: 'auto',
 
   machineIdConfig: {
     autoSwitchOnAccountChange: false,
@@ -1309,6 +1319,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
           autoRefreshEnabled: data.autoRefreshEnabled ?? true,
           autoRefreshInterval: data.autoRefreshInterval ?? 5,
           autoRefreshConcurrency: data.autoRefreshConcurrency ?? 100,
+          autoRefreshSyncInfo: data.autoRefreshSyncInfo ?? true,
           statusCheckInterval: data.statusCheckInterval ?? 60,
           privacyMode: data.privacyMode ?? false,
           proxyEnabled: data.proxyEnabled ?? false,
@@ -1318,6 +1329,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
           autoSwitchInterval: data.autoSwitchInterval ?? 5,
           theme: data.theme ?? 'default',
           darkMode: data.darkMode ?? false,
+          language: data.language ?? 'auto',
           machineIdConfig: data.machineIdConfig ?? {
             autoSwitchOnAccountChange: false,
             bindMachineIdToAccount: false,
@@ -1368,6 +1380,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
       autoSwitchInterval,
       theme,
       darkMode,
+      language,
       machineIdConfig,
       accountMachineIds,
       machineIdHistory
@@ -1393,6 +1406,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
         autoSwitchInterval,
         theme,
         darkMode,
+        language,
         machineIdConfig,
         accountMachineIds,
         machineIdHistory
@@ -1423,6 +1437,11 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
 
   setAutoRefreshConcurrency: (concurrency) => {
     set({ autoRefreshConcurrency: Math.max(1, Math.min(500, concurrency)) })
+    get().saveToStorage()
+  },
+
+  setAutoRefreshSyncInfo: (enabled) => {
+    set({ autoRefreshSyncInfo: enabled })
     get().saveToStorage()
   },
 
@@ -1477,6 +1496,13 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     set({ darkMode: enabled })
     get().saveToStorage()
     get().applyTheme()
+  },
+
+  // ==================== 语言设置 ====================
+
+  setLanguage: (language) => {
+    set({ language })
+    get().saveToStorage()
   },
 
   applyTheme: () => {
@@ -1784,6 +1810,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     const accountsToRefresh: Array<{
       id: string
       email: string
+      idp?: string
       credentials: {
         refreshToken: string
         clientId?: string
@@ -1791,6 +1818,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
         region?: string
         authMethod?: string
         accessToken?: string
+        provider?: string
       }
     }> = []
     
@@ -1809,13 +1837,15 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
         accountsToRefresh.push({
           id,
           email: account.email,
+          idp: account.idp,
           credentials: {
             refreshToken: account.credentials.refreshToken || '',
             clientId: account.credentials.clientId,
             clientSecret: account.credentials.clientSecret,
             region: account.credentials.region,
             authMethod: account.credentials.authMethod,
-            accessToken: account.credentials.accessToken
+            accessToken: account.credentials.accessToken,
+            provider: account.credentials.provider
           }
         })
       }
@@ -1829,7 +1859,8 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     console.log(`[BackgroundRefresh] Triggering refresh for ${accountsToRefresh.length} accounts...`)
     
     // 调用主进程后台刷新，不等待结果（通过 IPC 事件接收）
-    window.api.backgroundBatchRefresh(accountsToRefresh, autoRefreshConcurrency)
+    const { autoRefreshSyncInfo } = get()
+    window.api.backgroundBatchRefresh(accountsToRefresh, autoRefreshConcurrency, autoRefreshSyncInfo)
   },
 
   // 处理后台刷新结果（由 App.tsx 调用）

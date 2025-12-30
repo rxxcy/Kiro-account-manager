@@ -33,6 +33,7 @@ nsis:
   installerIcon: resources/kiro-high-resolution-logo-transparent.ico
   uninstallerIcon: resources/kiro-high-resolution-logo-transparent.ico
 mac:
+  identity: null  # 跳过代码签名（没有 Apple 开发者证书时）
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -40,6 +41,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  hardenedRuntime: false  # 禁用强化运行时（需要签名）
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
 linux:
@@ -47,6 +49,7 @@ linux:
     - AppImage
     - snap
     - deb
+  executableName: kiro-account-manager
   maintainer: electronjs.org
   category: Utility
 appImage:

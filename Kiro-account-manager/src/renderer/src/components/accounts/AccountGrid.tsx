@@ -1,6 +1,7 @@
 import { useRef, useMemo, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import { AccountCard } from './AccountCard'
 import { AccountDetailDialog } from './AccountDetailDialog'
 import type { Account } from '@/types/account'
@@ -52,6 +53,8 @@ export function AccountGrid({ onAddAccount, onEditAccount }: AccountGridProps): 
     toggleSelection,
     checkAccountStatus
   } = useAccountsStore()
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
 
   const handleShowDetail = (account: Account) => {
     setDetailAccount(account)
@@ -131,7 +134,7 @@ export function AccountGrid({ onAddAccount, onEditAccount }: AccountGridProps): 
                     >
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Plus className="h-8 w-8" />
-                        <span className="text-sm">添加账号</span>
+                        <span className="text-sm">{isEn ? 'Add Account' : '添加账号'}</span>
                       </div>
                     </div>
                   ) : (
@@ -158,13 +161,13 @@ export function AccountGrid({ onAddAccount, onEditAccount }: AccountGridProps): 
       {accounts.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">暂无账号</p>
+            <p className="text-muted-foreground mb-4">{isEn ? 'No accounts yet' : '暂无账号'}</p>
             <button
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={onAddAccount}
             >
               <Plus className="h-4 w-4" />
-              添加第一个账号
+              {isEn ? 'Add First Account' : '添加第一个账号'}
             </button>
           </div>
         </div>

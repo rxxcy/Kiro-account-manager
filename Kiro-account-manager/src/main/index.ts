@@ -1291,7 +1291,7 @@ app.whenReady().then(() => {
   // IPC: 后台批量刷新账号（在主进程执行，不阻塞 UI）
   ipcMain.handle('background-batch-refresh', async (_event, accounts: Array<{
     id: string
-    email: string
+    idp?: string
     credentials: {
       refreshToken: string
       clientId?: string
@@ -1299,9 +1299,10 @@ app.whenReady().then(() => {
       region?: string
       authMethod?: string
       accessToken?: string
+      provider?: string
     }
-  }>, concurrency: number = 10) => {
-    console.log(`[BackgroundRefresh] Starting batch refresh for ${accounts.length} accounts, concurrency: ${concurrency}`)
+  }>, concurrency: number = 10, syncInfo: boolean = true) => {
+    console.log(`[BackgroundRefresh] Starting batch refresh for ${accounts.length} accounts, concurrency: ${concurrency}, syncInfo: ${syncInfo}`)
     
     let completed = 0
     let success = 0
@@ -1314,7 +1315,15 @@ app.whenReady().then(() => {
       await Promise.allSettled(
         batch.map(async (account) => {
           try {
-            const { refreshToken, clientId, clientSecret, region, authMethod, accessToken } = account.credentials
+            const { refreshToken, clientId, clientSecret, region, authMethod, accessToken, provider } = account.credentials
+            
+            // 确定正确的 idp
+            let idp = 'BuilderId'
+            if (authMethod === 'social') {
+              idp = provider || account.idp || 'BuilderId'
+            } else if (provider) {
+              idp = provider
+            }
             
             if (!refreshToken) {
               failed++
@@ -1351,97 +1360,38 @@ app.whenReady().then(() => {
               return
             }
 
-            // 调用 API 获取用量、订阅和用户信息（检测封禁状态）
-            const [usageRes, subscriptionRes, userInfoRes] = await Promise.allSettled([
-              fetch(KIRO_API_BASE, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${newAccessToken}`,
-                  'X-Operation-Name': 'GetUserUsageAndLimits'
-                },
-                body: JSON.stringify({ isEmailRequired: true, origin: 'KIRO_IDE' })
-              }),
-              fetch(KIRO_API_BASE, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${newAccessToken}`,
-                  'X-Operation-Name': 'GetSubscription'
-                },
-                body: JSON.stringify({})
-              }),
-              fetch(KIRO_API_BASE, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${newAccessToken}`,
-                  'X-Operation-Name': 'GetUserInfo'
-                },
-                body: JSON.stringify({ origin: 'KIRO_IDE' })
-              })
-            ])
-
-            // 解析响应
-            let usageData = null
-            let subscriptionData = null
-            let userInfoData = null
+            // 根据 syncInfo 决定是否检测账户信息
+            let usageData: unknown = null
+            let userInfoData: UserInfoResponse | undefined
             let status = 'active'
             let errorMessage: string | undefined
 
-            // 检查用量响应（可能返回封禁错误，状态码 423）
-            if (usageRes.status === 'fulfilled') {
-              const usageResponse = usageRes.value
-              if (usageResponse.ok) {
-                usageData = await usageResponse.json()
-              } else {
-                // 尝试解析错误响应
-                try {
-                  const errorBody = await usageResponse.json()
-                  console.log(`[BackgroundRefresh] Usage API error (${usageResponse.status}):`, errorBody)
-                  if (errorBody.__type?.includes('AccountSuspendedException') || usageResponse.status === 423) {
-                    status = 'error'
-                    errorMessage = errorBody.message || 'AccountSuspendedException: 账号已被封禁'
-                  }
-                } catch {
-                  if (usageResponse.status === 423) {
-                    status = 'error'
-                    errorMessage = 'AccountSuspendedException: 账号已被封禁'
-                  }
+            if (syncInfo) {
+              // 调用 GetUserUsageAndLimits API（CBOR 格式 + 正确的 Cookie 认证）
+              try {
+                usageData = await kiroApiRequest(
+                  'GetUserUsageAndLimits',
+                  { isEmailRequired: true, origin: 'KIRO_IDE' },
+                  newAccessToken,
+                  idp
+                )
+              } catch (apiError) {
+                const errMsg = apiError instanceof Error ? apiError.message : String(apiError)
+                console.log(`[BackgroundRefresh] Usage API error for ${account.id}:`, errMsg)
+                if (errMsg.includes('AccountSuspendedException') || errMsg.includes('423')) {
+                  status = 'error'
+                  errorMessage = errMsg
                 }
               }
-            }
 
-            // 检查订阅响应（也可能返回封禁错误）
-            if (subscriptionRes.status === 'fulfilled') {
-              const subResponse = subscriptionRes.value
-              if (subResponse.ok) {
-                subscriptionData = await subResponse.json()
-              } else if (subResponse.status === 423 && status !== 'error') {
-                try {
-                  const errorBody = await subResponse.json()
+              // 调用 GetUserInfo API 获取用户状态
+              try {
+                userInfoData = await getUserInfo(newAccessToken, idp)
+              } catch (apiError) {
+                const errMsg = apiError instanceof Error ? apiError.message : String(apiError)
+                if (errMsg.includes('AccountSuspendedException') || errMsg.includes('423')) {
                   status = 'error'
-                  errorMessage = errorBody.message || 'AccountSuspendedException: 账号已被封禁'
-                } catch {
-                  status = 'error'
-                  errorMessage = 'AccountSuspendedException: 账号已被封禁'
-                }
-              }
-            }
-
-            // 检查用户信息响应
-            if (userInfoRes.status === 'fulfilled') {
-              const userResponse = userInfoRes.value
-              if (userResponse.ok) {
-                userInfoData = await userResponse.json()
-              } else if (userResponse.status === 423 && status !== 'error') {
-                try {
-                  const errorBody = await userResponse.json()
-                  status = 'error'
-                  errorMessage = errorBody.message || 'AccountSuspendedException: 账号已被封禁'
-                } catch {
-                  status = 'error'
-                  errorMessage = 'AccountSuspendedException: 账号已被封禁'
+                  errorMessage = errMsg
                 }
               }
             }
@@ -1457,9 +1407,8 @@ app.whenReady().then(() => {
                 accessToken: newAccessToken,
                 refreshToken: refreshResult.refreshToken,
                 expiresIn: refreshResult.expiresIn,
-                usage: usageData,
-                subscription: subscriptionData,
-                userInfo: userInfoData,
+                usage: syncInfo ? usageData : undefined,
+                userInfo: syncInfo ? userInfoData : undefined,
                 status,
                 errorMessage
               }

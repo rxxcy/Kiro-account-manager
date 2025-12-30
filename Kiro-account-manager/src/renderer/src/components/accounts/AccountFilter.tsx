@@ -1,5 +1,6 @@
 import { Button } from '../ui'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import type { AccountFilter as FilterType, SubscriptionType, AccountStatus, IdpType } from '@/types/account'
 import { cn } from '@/lib/utils'
 
@@ -10,11 +11,18 @@ const SubscriptionOptions: { value: SubscriptionType; label: string }[] = [
   { value: 'Enterprise', label: 'KIRO POWER' }
 ]
 
-const StatusOptions: { value: AccountStatus; label: string }[] = [
+const StatusOptionsZh: { value: AccountStatus; label: string }[] = [
   { value: 'active', label: '正常' },
   { value: 'expired', label: '已过期' },
   { value: 'error', label: '错误' },
   { value: 'unknown', label: '未知' }
+]
+
+const StatusOptionsEn: { value: AccountStatus; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'error', label: 'Error' },
+  { value: 'unknown', label: 'Unknown' }
 ]
 
 const IdpOptions: { value: IdpType; label: string }[] = [
@@ -42,6 +50,9 @@ function toRgba(argbColor: string): string {
 
 export function AccountFilterPanel(): React.ReactNode {
   const { filter, setFilter, clearFilter, groups, tags, getStats } = useAccountsStore()
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
+  const StatusOptions = isEn ? StatusOptionsEn : StatusOptionsZh
 
   const stats = getStats()
 
@@ -96,7 +107,7 @@ export function AccountFilterPanel(): React.ReactNode {
             className="h-6 text-xs px-2"
             onClick={() => clearFilter()}
           >
-            清除筛选
+            {isEn ? 'Clear' : '清除筛选'}
           </Button>
         </div>
       )}
@@ -104,7 +115,7 @@ export function AccountFilterPanel(): React.ReactNode {
           <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
             {/* 订阅类型 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground shrink-0">订阅:</span>
+              <span className="text-xs text-muted-foreground shrink-0">{isEn ? 'Plan:' : '订阅:'}</span>
               <div className="flex flex-wrap gap-1">
                 {SubscriptionOptions.map((option) => {
                   const isActive = filter.subscriptionTypes?.includes(option.value)
@@ -129,7 +140,7 @@ export function AccountFilterPanel(): React.ReactNode {
 
             {/* 状态 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground shrink-0">状态:</span>
+              <span className="text-xs text-muted-foreground shrink-0">{isEn ? 'Status:' : '状态:'}</span>
               <div className="flex flex-wrap gap-1">
                 {StatusOptions.map((option) => {
                   const isActive = filter.statuses?.includes(option.value)
@@ -183,7 +194,7 @@ export function AccountFilterPanel(): React.ReactNode {
             {/* 分组 */}
             {groups.size > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground shrink-0">分组:</span>
+                <span className="text-xs text-muted-foreground shrink-0">{isEn ? 'Group:' : '分组:'}</span>
                 <div className="flex flex-wrap gap-1">
                   {Array.from(groups.values()).map((group) => {
                     const isActive = filter.groupIds?.includes(group.id)
@@ -210,7 +221,7 @@ export function AccountFilterPanel(): React.ReactNode {
             {/* 标签 */}
             {tags.size > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground shrink-0">标签:</span>
+                <span className="text-xs text-muted-foreground shrink-0">{isEn ? 'Tags:' : '标签:'}</span>
                 <div className="flex flex-wrap gap-1">
                   {Array.from(tags.values()).map((tag) => {
                     const isActive = filter.tagIds?.includes(tag.id)
@@ -234,7 +245,7 @@ export function AccountFilterPanel(): React.ReactNode {
 
             {/* 使用量范围 */}
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">使用量:</span>
+              <span className="text-xs text-muted-foreground">{isEn ? 'Usage:' : '使用量:'}</span>
               <input
                 type="number"
                 min="0"
@@ -273,7 +284,7 @@ export function AccountFilterPanel(): React.ReactNode {
 
             {/* 剩余天数范围 */}
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">剩余:</span>
+              <span className="text-xs text-muted-foreground">{isEn ? 'Days:' : '剩余:'}</span>
               <input
                 type="number"
                 min="0"
@@ -305,7 +316,7 @@ export function AccountFilterPanel(): React.ReactNode {
                   )
                 }
               />
-              <span className="text-xs text-muted-foreground">天</span>
+              <span className="text-xs text-muted-foreground">{isEn ? 'd' : '天'}</span>
             </div>
           </div>
     </div>

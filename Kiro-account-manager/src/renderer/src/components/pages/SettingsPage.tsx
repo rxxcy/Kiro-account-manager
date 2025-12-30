@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, Button } from '../ui'
 import { Eye, EyeOff, RefreshCw, Clock, Trash2, Download, Upload, Globe, Repeat, Palette, Moon, Sun, Fingerprint, Info, ChevronDown, ChevronUp, Settings, Database, Layers } from 'lucide-react'
 import { useState } from 'react'
 import { ExportDialog } from '../accounts/ExportDialog'
+import { useTranslation } from '@/hooks/useTranslation'
 
 // 主题配置 - 按色系分组
-const themeGroups = [
+const themeGroupsZh = [
   {
     name: '蓝色系',
     themes: [
       { id: 'default', name: '天空蓝', color: '#3b82f6' },
-      { id: 'indigo', name: '靛蓝', color: '#6366f1' },
+      { id: 'indigo', name: '靖蓝', color: '#6366f1' },
       { id: 'cyan', name: '清新青', color: '#06b6d4' },
       { id: 'sky', name: '晴空蓝', color: '#0ea5e9' },
       { id: 'teal', name: '水鸭蓝', color: '#14b8a6' },
@@ -23,7 +24,7 @@ const themeGroups = [
       { id: 'violet', name: '紫罗兰', color: '#8b5cf6' },
       { id: 'fuchsia', name: '洋红', color: '#d946ef' },
       { id: 'pink', name: '粉红', color: '#ec4899' },
-      { id: 'rose', name: '玫瑰红', color: '#f43f5e' },
+      { id: 'rose', name: '玑瑰红', color: '#f43f5e' },
     ]
   },
   {
@@ -54,6 +55,55 @@ const themeGroups = [
   }
 ]
 
+const themeGroupsEn = [
+  {
+    name: 'Blue',
+    themes: [
+      { id: 'default', name: 'Sky Blue', color: '#3b82f6' },
+      { id: 'indigo', name: 'Indigo', color: '#6366f1' },
+      { id: 'cyan', name: 'Cyan', color: '#06b6d4' },
+      { id: 'sky', name: 'Sky', color: '#0ea5e9' },
+      { id: 'teal', name: 'Teal', color: '#14b8a6' },
+    ]
+  },
+  {
+    name: 'Purple',
+    themes: [
+      { id: 'purple', name: 'Purple', color: '#a855f7' },
+      { id: 'violet', name: 'Violet', color: '#8b5cf6' },
+      { id: 'fuchsia', name: 'Fuchsia', color: '#d946ef' },
+      { id: 'pink', name: 'Pink', color: '#ec4899' },
+      { id: 'rose', name: 'Rose', color: '#f43f5e' },
+    ]
+  },
+  {
+    name: 'Warm',
+    themes: [
+      { id: 'red', name: 'Red', color: '#ef4444' },
+      { id: 'orange', name: 'Orange', color: '#f97316' },
+      { id: 'amber', name: 'Amber', color: '#f59e0b' },
+      { id: 'yellow', name: 'Yellow', color: '#eab308' },
+    ]
+  },
+  {
+    name: 'Green',
+    themes: [
+      { id: 'emerald', name: 'Emerald', color: '#10b981' },
+      { id: 'green', name: 'Green', color: '#22c55e' },
+      { id: 'lime', name: 'Lime', color: '#84cc16' },
+    ]
+  },
+  {
+    name: 'Neutral',
+    themes: [
+      { id: 'slate', name: 'Slate', color: '#64748b' },
+      { id: 'zinc', name: 'Zinc', color: '#71717a' },
+      { id: 'stone', name: 'Stone', color: '#78716c' },
+      { id: 'neutral', name: 'Neutral', color: '#737373' },
+    ]
+  }
+]
+
 export function SettingsPage() {
   const { 
     privacyMode, 
@@ -61,8 +111,10 @@ export function SettingsPage() {
     autoRefreshEnabled,
     autoRefreshInterval,
     autoRefreshConcurrency,
+    autoRefreshSyncInfo,
     setAutoRefresh,
     setAutoRefreshConcurrency,
+    setAutoRefreshSyncInfo,
     proxyEnabled,
     proxyUrl,
     setProxy,
@@ -76,14 +128,19 @@ export function SettingsPage() {
     darkMode,
     setTheme,
     setDarkMode,
+    language,
+    setLanguage,
     accounts,
     importFromExportData
   } = useAccountsStore()
 
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [tempProxyUrl, setTempProxyUrl] = useState(proxyUrl)
   const [themeExpanded, setThemeExpanded] = useState(false)
+  const themeGroups = isEn ? themeGroupsEn : themeGroupsZh
 
   const handleExport = () => {
     setShowExportDialog(true)
@@ -130,11 +187,45 @@ export function SettingsPage() {
             <Settings className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-primary">设置</h1>
-            <p className="text-muted-foreground">配置应用的各项功能</p>
+            <h1 className="text-2xl font-bold text-primary">{t('settings.title')}</h1>
+            <p className="text-muted-foreground">{t('settings.title') === 'Settings' ? 'Configure app features' : '配置应用的各项功能'}</p>
           </div>
         </div>
       </div>
+
+      {/* 语言设置 */}
+      <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Globe className="h-4 w-4 text-primary" />
+            </div>
+            语言 / Language
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">显示语言 / Display Language</p>
+              <p className="text-sm text-muted-foreground">选择界面显示语言 / Select interface language</p>
+            </div>
+            <select
+              className="w-[160px] h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as 'auto' | 'en' | 'zh')}
+            >
+              <option value="auto">🌐 自动 (Auto)</option>
+              <option value="zh">🇨🇳 简体中文</option>
+              <option value="en">🇺🇸 English</option>
+            </select>
+          </div>
+          <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-1">
+            <p>• 自动模式会根据系统语言自动选择</p>
+            <p>• Auto mode will follow system language</p>
+            <p>• 支持自定义翻译文件扩展（开发中）</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 主题设置 */}
       <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -143,15 +234,15 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Palette className="h-4 w-4 text-primary" />
             </div>
-            主题设置
+            {isEn ? 'Theme' : '主题设置'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 深色模式 */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">深色模式</p>
-              <p className="text-sm text-muted-foreground">切换深色/浅色主题</p>
+              <p className="font-medium">{isEn ? 'Dark Mode' : '深色模式'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Toggle dark/light theme' : '切换深色/浅色主题'}</p>
             </div>
             <Button
               variant={darkMode ? "default" : "outline"}
@@ -159,7 +250,7 @@ export function SettingsPage() {
               onClick={() => setDarkMode(!darkMode)}
             >
               {darkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
-              {darkMode ? '深色' : '浅色'}
+              {darkMode ? (isEn ? 'Dark' : '深色') : (isEn ? 'Light' : '浅色')}
             </Button>
           </div>
 
@@ -170,7 +261,7 @@ export function SettingsPage() {
               onClick={() => setThemeExpanded(!themeExpanded)}
             >
               <div className="flex items-center gap-2">
-                <p className="font-medium">主题颜色</p>
+                <p className="font-medium">{isEn ? 'Theme Color' : '主题颜色'}</p>
                 {!themeExpanded && (
                   <div 
                     className="w-5 h-5 rounded-full ring-2 ring-primary ring-offset-1"
@@ -223,14 +314,14 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               {privacyMode ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
             </div>
-            隐私设置
+            {isEn ? 'Privacy' : '隐私设置'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">隐私模式</p>
-              <p className="text-sm text-muted-foreground">隐藏邮箱和账号敏感信息</p>
+              <p className="font-medium">{isEn ? 'Privacy Mode' : '隐私模式'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Hide emails and sensitive info' : '隐藏邮箱和账号敏感信息'}</p>
             </div>
             <Button
               variant={privacyMode ? "default" : "outline"}
@@ -238,7 +329,7 @@ export function SettingsPage() {
               onClick={() => setPrivacyMode(!privacyMode)}
             >
               {privacyMode ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {privacyMode ? '已开启' : '已关闭'}
+              {privacyMode ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
             </Button>
           </div>
         </CardContent>
@@ -251,56 +342,56 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <RefreshCw className="h-4 w-4 text-primary" />
             </div>
-            自动刷新
+            {isEn ? 'Auto Refresh' : '自动刷新'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">自动刷新</p>
-              <p className="text-sm text-muted-foreground">Token 过期前自动刷新，并同步更新账户信息</p>
+              <p className="font-medium">{isEn ? 'Auto Refresh' : '自动刷新'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Auto refresh tokens before expiration' : 'Token 过期前自动刷新，并同步更新账户信息'}</p>
             </div>
             <Button
               variant={autoRefreshEnabled ? "default" : "outline"}
               size="sm"
               onClick={() => setAutoRefresh(!autoRefreshEnabled)}
             >
-              {autoRefreshEnabled ? '已开启' : '已关闭'}
+              {autoRefreshEnabled ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
             </Button>
           </div>
 
           {autoRefreshEnabled && (
             <>
               <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-1">
-                <p>• Token 即将过期时自动刷新，保持登录状态</p>
-                <p>• Token 刷新后自动更新账户用量、订阅等信息</p>
-                <p>• 开启自动换号时，会定期检查所有账户余额</p>
+                <p>• {isEn ? 'Auto refresh tokens to keep login' : 'Token 即将过期时自动刷新，保持登录状态'}</p>
+                <p>• {isEn ? 'Update usage and subscription info after refresh' : 'Token 刷新后自动更新账户用量、订阅等信息'}</p>
+                <p>• {isEn ? 'Check all balances when auto-switch is on' : '开启自动换号时，会定期检查所有账户余额'}</p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
-                  <p className="font-medium">检查间隔</p>
-                  <p className="text-sm text-muted-foreground">每隔多久检查一次账户状态</p>
+                  <p className="font-medium">{isEn ? 'Check Interval' : '检查间隔'}</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'How often to check account status' : '每隔多久检查一次账户状态'}</p>
                 </div>
                 <select
                   className="w-[120px] h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   value={autoRefreshInterval}
                   onChange={(e) => setAutoRefresh(true, parseInt(e.target.value))}
                 >
-                  <option value="1">1 分钟</option>
-                  <option value="3">3 分钟</option>
-                  <option value="5">5 分钟</option>
-                  <option value="10">10 分钟</option>
-                  <option value="15">15 分钟</option>
-                  <option value="20">20 分钟</option>
-                  <option value="30">30 分钟</option>
-                  <option value="45">45 分钟</option>
-                  <option value="60">60 分钟</option>
+                  <option value="1">{isEn ? '1 min' : '1 分钟'}</option>
+                  <option value="3">{isEn ? '3 min' : '3 分钟'}</option>
+                  <option value="5">{isEn ? '5 min' : '5 分钟'}</option>
+                  <option value="10">{isEn ? '10 min' : '10 分钟'}</option>
+                  <option value="15">{isEn ? '15 min' : '15 分钟'}</option>
+                  <option value="20">{isEn ? '20 min' : '20 分钟'}</option>
+                  <option value="30">{isEn ? '30 min' : '30 分钟'}</option>
+                  <option value="45">{isEn ? '45 min' : '45 分钟'}</option>
+                  <option value="60">{isEn ? '60 min' : '60 分钟'}</option>
                 </select>
               </div>
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
-                  <p className="font-medium">刷新并发数</p>
-                  <p className="text-sm text-muted-foreground">同时刷新的账号数量，过大可能卡顿</p>
+                  <p className="font-medium">{isEn ? 'Concurrency' : '刷新并发数'}</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'Number of accounts to refresh simultaneously' : '同时刷新的账号数量，过大可能卡顿'}</p>
                 </div>
                 <input
                   type="number"
@@ -310,6 +401,19 @@ export function SettingsPage() {
                   max={500}
                   onChange={(e) => setAutoRefreshConcurrency(parseInt(e.target.value) || 50)}
                 />
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div>
+                  <p className="font-medium">{isEn ? 'Sync Account Info' : '同步检测账户信息'}</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'Detect usage, subscription, and ban status' : '刷新 Token 时同步检测用量、订阅、封禁状态'}</p>
+                </div>
+                <Button
+                  variant={autoRefreshSyncInfo ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAutoRefreshSyncInfo(!autoRefreshSyncInfo)}
+                >
+                  {autoRefreshSyncInfo ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
+                </Button>
               </div>
             </>
           )}
@@ -323,26 +427,26 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Globe className="h-4 w-4 text-primary" />
             </div>
-            代理设置
+            {isEn ? 'Proxy' : '代理设置'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">启用代理</p>
-              <p className="text-sm text-muted-foreground">所有网络请求将通过代理服务器</p>
+              <p className="font-medium">{isEn ? 'Enable Proxy' : '启用代理'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'All requests through proxy server' : '所有网络请求将通过代理服务器'}</p>
             </div>
             <Button
               variant={proxyEnabled ? "default" : "outline"}
               size="sm"
               onClick={() => setProxy(!proxyEnabled, tempProxyUrl)}
             >
-              {proxyEnabled ? '已开启' : '已关闭'}
+              {proxyEnabled ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
             </Button>
           </div>
 
           <div className="space-y-2 pt-2 border-t">
-            <label className="text-sm font-medium">代理地址</label>
+            <label className="text-sm font-medium">{isEn ? 'Proxy URL' : '代理地址'}</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -357,11 +461,11 @@ export function SettingsPage() {
                 onClick={() => setProxy(proxyEnabled, tempProxyUrl)}
                 disabled={tempProxyUrl === proxyUrl}
               >
-                保存
+                {isEn ? 'Save' : '保存'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              支持 HTTP/HTTPS/SOCKS5 代理，格式: protocol://host:port
+              {isEn ? 'Supports HTTP/HTTPS/SOCKS5, format: protocol://host:port' : '支持 HTTP/HTTPS/SOCKS5 代理，格式: protocol://host:port'}
             </p>
           </div>
         </CardContent>
@@ -374,21 +478,21 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Repeat className="h-4 w-4 text-primary" />
             </div>
-            自动换号
+            {isEn ? 'Auto Switch' : '自动换号'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">启用自动换号</p>
-              <p className="text-sm text-muted-foreground">余额不足时自动切换到其他可用账号</p>
+              <p className="font-medium">{isEn ? 'Enable Auto Switch' : '启用自动换号'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Auto switch when balance is low' : '余额不足时自动切换到其他可用账号'}</p>
             </div>
             <Button
               variant={autoSwitchEnabled ? "default" : "outline"}
               size="sm"
               onClick={() => setAutoSwitch(!autoSwitchEnabled)}
             >
-              {autoSwitchEnabled ? '已开启' : '已关闭'}
+              {autoSwitchEnabled ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
             </Button>
           </div>
 
@@ -396,8 +500,8 @@ export function SettingsPage() {
             <>
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
-                  <p className="font-medium">余额阈值</p>
-                  <p className="text-sm text-muted-foreground">余额低于此值时自动切换</p>
+                  <p className="font-medium">{isEn ? 'Balance Threshold' : '余额阈值'}</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'Switch when balance below this' : '余额低于此值时自动切换'}</p>
                 </div>
                 <input
                   type="number"
@@ -412,21 +516,21 @@ export function SettingsPage() {
                 <div>
                   <p className="font-medium flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    检查间隔
+                    {isEn ? 'Check Interval' : '检查间隔'}
                   </p>
-                  <p className="text-sm text-muted-foreground">每隔多久检查一次余额</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'How often to check balance' : '每隔多久检查一次余额'}</p>
                 </div>
                 <select
                   className="h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   value={autoSwitchInterval}
                   onChange={(e) => setAutoSwitch(true, undefined, parseInt(e.target.value))}
                 >
-                  <option value="1">1 分钟</option>
-                  <option value="3">3 分钟</option>
-                  <option value="5">5 分钟</option>
-                  <option value="10">10 分钟</option>
-                  <option value="15">15 分钟</option>
-                  <option value="30">30 分钟</option>
+                  <option value="1">{isEn ? '1 min' : '1 分钟'}</option>
+                  <option value="3">{isEn ? '3 min' : '3 分钟'}</option>
+                  <option value="5">{isEn ? '5 min' : '5 分钟'}</option>
+                  <option value="10">{isEn ? '10 min' : '10 分钟'}</option>
+                  <option value="15">{isEn ? '15 min' : '15 分钟'}</option>
+                  <option value="30">{isEn ? '30 min' : '30 分钟'}</option>
                 </select>
               </div>
             </>
@@ -441,14 +545,14 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Layers className="h-4 w-4 text-primary" />
             </div>
-            批量导入
+            {isEn ? 'Batch Import' : '批量导入'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">并发数</p>
-              <p className="text-sm text-muted-foreground">同时验证的账号数量，过大可能导致 API 限流</p>
+              <p className="font-medium">{isEn ? 'Concurrency' : '并发数'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Too high may cause API rate limiting' : '同时验证的账号数量，过大可能导致 API 限流'}</p>
             </div>
             <input
               type="number"
@@ -460,7 +564,7 @@ export function SettingsPage() {
             />
           </div>
           <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
-            建议范围: 10-100。设置过大可能导致大量「验证失败」，设置过小则导入速度较慢。
+            {isEn ? 'Recommended: 10-100. Too high may cause failures, too low is slow.' : '建议范围: 10-100。设置过大可能导致大量「验证失败」，设置过小则导入速度较慢。'}
           </p>
         </CardContent>
       </Card>
@@ -473,14 +577,14 @@ export function SettingsPage() {
               <Fingerprint className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="font-medium text-sm">机器码管理</p>
+              <p className="font-medium text-sm">{isEn ? 'Machine ID' : '机器码管理'}</p>
               <p className="text-xs text-muted-foreground">
-                修改设备标识符、切号自动换码、账户机器码绑定等功能
+                {isEn ? 'Device identifier, auto-switch, account binding' : '修改设备标识符、切号自动换码、账户机器码绑定等功能'}
               </p>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Info className="h-3 w-3" />
-              <span>请在侧边栏「机器码」中设置</span>
+              <span>{isEn ? 'Set in sidebar "Machine ID"' : '请在侧边栏「机器码」中设置'}</span>
             </div>
           </div>
         </CardContent>
@@ -493,40 +597,40 @@ export function SettingsPage() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Database className="h-4 w-4 text-primary" />
             </div>
-            数据管理
+            {isEn ? 'Data Management' : '数据管理'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">导出数据</p>
-              <p className="text-sm text-muted-foreground">支持 JSON、TXT、CSV、剪贴板等多种格式</p>
+              <p className="font-medium">{isEn ? 'Export Data' : '导出数据'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Supports JSON, TXT, CSV, Clipboard' : '支持 JSON、TXT、CSV、剪贴板等多种格式'}</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
-              导出
+              {isEn ? 'Export' : '导出'}
             </Button>
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t">
             <div>
-              <p className="font-medium">导入数据</p>
-              <p className="text-sm text-muted-foreground">从 JSON 文件导入账号数据</p>
+              <p className="font-medium">{isEn ? 'Import Data' : '导入数据'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Import accounts from JSON file' : '从 JSON 文件导入账号数据'}</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleImport} disabled={isImporting}>
               <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? '导入中...' : '导入'}
+              {isImporting ? (isEn ? 'Importing...' : '导入中...') : (isEn ? 'Import' : '导入')}
             </Button>
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t">
             <div>
-              <p className="font-medium text-destructive">清除所有数据</p>
-              <p className="text-sm text-muted-foreground">删除所有账号、分组和标签</p>
+              <p className="font-medium text-destructive">{isEn ? 'Clear All Data' : '清除所有数据'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Delete all accounts, groups and tags' : '删除所有账号、分组和标签'}</p>
             </div>
             <Button variant="destructive" size="sm" onClick={handleClearData}>
               <Trash2 className="h-4 w-4 mr-2" />
-              清除
+              {isEn ? 'Clear' : '清除'}
             </Button>
           </div>
         </CardContent>

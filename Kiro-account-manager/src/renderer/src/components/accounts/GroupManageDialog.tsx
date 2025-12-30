@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '../ui'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import type { AccountGroup } from '@/types/account'
 import { X, Plus, Edit2, Trash2, Users, Check, FolderOpen } from 'lucide-react'
 
@@ -11,6 +12,8 @@ interface GroupManageDialogProps {
 
 export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): React.ReactNode {
   const { groups, accounts, addGroup, updateGroup, removeGroup, moveAccountsToGroup } = useAccountsStore()
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
 
   // 编辑状态
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -108,7 +111,7 @@ export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): 
         <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
           <CardTitle className="flex items-center gap-2">
             <FolderOpen className="h-5 w-5" />
-            分组管理
+            {isEn ? 'Group Management' : '分组管理'}
           </CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -118,9 +121,9 @@ export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): 
         <CardContent className="flex-1 overflow-auto space-y-4">
           {/* 统计信息 */}
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>共 {groupList.length} 个分组</span>
+            <span>{isEn ? `${groupList.length} groups` : `共 ${groupList.length} 个分组`}</span>
             <span>•</span>
-            <span>{getUngroupedCount()} 个未分组账号</span>
+            <span>{isEn ? `${getUngroupedCount()} ungrouped` : `${getUngroupedCount()} 个未分组账号`}</span>
           </div>
 
           {/* 新建分组 */}
@@ -135,7 +138,7 @@ export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): 
                 />
                 <input
                   type="text"
-                  placeholder="分组名称"
+                  placeholder={isEn ? 'Group name' : '分组名称'}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -144,25 +147,25 @@ export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): 
               </div>
               <input
                 type="text"
-                placeholder="分组描述（可选）"
+                placeholder={isEn ? 'Description (optional)' : '分组描述（可选）'}
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setIsCreating(false)}>
-                  取消
+                  {isEn ? 'Cancel' : '取消'}
                 </Button>
                 <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>
                   <Check className="h-4 w-4 mr-1" />
-                  创建
+                  {isEn ? 'Create' : '创建'}
                 </Button>
               </div>
             </div>
           ) : (
             <Button variant="outline" className="w-full" onClick={() => setIsCreating(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              新建分组
+              {isEn ? 'New Group' : '新建分组'}
             </Button>
           )}
 
@@ -193,17 +196,17 @@ export function GroupManageDialog({ isOpen, onClose }: GroupManageDialogProps): 
                     </div>
                     <input
                       type="text"
-                      placeholder="分组描述"
+                      placeholder={isEn ? 'Description' : '分组描述'}
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       className="w-full px-3 py-1.5 border rounded text-sm"
                     />
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
-                        取消
+                        {isEn ? 'Cancel' : '取消'}
                       </Button>
                       <Button size="sm" onClick={handleSaveEdit}>
-                        保存
+                        {isEn ? 'Save' : '保存'}
                       </Button>
                     </div>
                   </div>

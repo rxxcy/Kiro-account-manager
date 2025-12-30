@@ -4,6 +4,7 @@ import { Button, Badge } from '../ui'
 import { X, FileJson, FileText, Table, Clipboard, Check, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import type { Account } from '@/types/account'
 
 type ExportFormat = 'json' | 'txt' | 'csv' | 'clipboard'
@@ -20,14 +21,16 @@ export function ExportDialog({ open, onClose, accounts, selectedCount }: ExportD
   const [includeCredentials, setIncludeCredentials] = useState(true)
   const [copied, setCopied] = useState(false)
   const { exportAccounts } = useAccountsStore()
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
 
   if (!open) return null
 
   const formats: { id: ExportFormat; name: string; icon: typeof FileJson; desc: string }[] = [
-    { id: 'json', name: 'JSON', icon: FileJson, desc: '完整数据，可用于导入' },
-    { id: 'txt', name: 'TXT', icon: FileText, desc: includeCredentials ? '可导入格式：邮箱,Token,昵称,登录方式' : '纯文本格式，每行一个账号' },
-    { id: 'csv', name: 'CSV', icon: Table, desc: includeCredentials ? '可导入格式，Excel 兼容' : 'Excel 兼容格式' },
-    { id: 'clipboard', name: '剪贴板', icon: Clipboard, desc: includeCredentials ? '可导入格式：邮箱,Token' : '复制到剪贴板' },
+    { id: 'json', name: 'JSON', icon: FileJson, desc: isEn ? 'Full data, can be imported' : '完整数据，可用于导入' },
+    { id: 'txt', name: 'TXT', icon: FileText, desc: isEn ? 'Text format' : (includeCredentials ? '可导入格式：邮箱,Token,昵称,登录方式' : '纯文本格式，每行一个账号') },
+    { id: 'csv', name: 'CSV', icon: Table, desc: isEn ? 'Excel compatible' : (includeCredentials ? '可导入格式，Excel 兼容' : 'Excel 兼容格式') },
+    { id: 'clipboard', name: isEn ? 'Clipboard' : '剪贴板', icon: Clipboard, desc: isEn ? 'Copy to clipboard' : (includeCredentials ? '可导入格式：邮箱,Token' : '复制到剪贴板') },
   ]
 
   // 生成导出内容
@@ -145,7 +148,7 @@ export function ExportDialog({ open, onClose, accounts, selectedCount }: ExportD
     
     const success = await window.api.exportToFile(content, filename)
     if (success) {
-      alert(`已导出 ${count} 个账号`)
+      alert(isEn ? `Exported ${count} accounts` : `已导出 ${count} 个账号`)
       onClose()
     }
   }
@@ -164,9 +167,9 @@ export function ExportDialog({ open, onClose, accounts, selectedCount }: ExportD
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">导出账号</h2>
+            <h2 className="text-lg font-semibold">{isEn ? 'Export Accounts' : '导出账号'}</h2>
             <Badge variant="secondary">
-              {selectedCount > 0 ? `${selectedCount} 个选中` : `全部 ${accounts.length} 个`}
+              {selectedCount > 0 ? (isEn ? `${selectedCount} selected` : `${selectedCount} 个选中`) : (isEn ? `All ${accounts.length}` : `全部 ${accounts.length} 个`)}
             </Badge>
           </div>
           <Button 
@@ -218,8 +221,8 @@ export function ExportDialog({ open, onClose, accounts, selectedCount }: ExportD
                 className="w-4 h-4 rounded"
               />
               <div>
-                <p className="text-sm font-medium">包含凭证信息</p>
-                <p className="text-xs text-muted-foreground">包含 Token 等敏感数据，可用于完整导入</p>
+                <p className="text-sm font-medium">{isEn ? 'Include credentials' : '包含凭证信息'}</p>
+                <p className="text-xs text-muted-foreground">{isEn ? 'Include sensitive data for full import' : '包含 Token 等敏感数据，可用于完整导入'}</p>
               </div>
             </label>
           )}
@@ -228,23 +231,23 @@ export function ExportDialog({ open, onClose, accounts, selectedCount }: ExportD
         {/* 底部按钮 */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t bg-muted/30">
           <Button variant="outline" onClick={onClose}>
-            取消
+            {isEn ? 'Cancel' : '取消'}
           </Button>
           <Button onClick={handleExport} disabled={copied}>
             {copied ? (
               <>
                 <Check className="h-4 w-4 mr-2" />
-                已复制
+                {isEn ? 'Copied' : '已复制'}
               </>
             ) : selectedFormat === 'clipboard' ? (
               <>
                 <Clipboard className="h-4 w-4 mr-2" />
-                复制到剪贴板
+                {isEn ? 'Copy' : '复制到剪贴板'}
               </>
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                导出
+                {isEn ? 'Export' : '导出'}
               </>
             )}
           </Button>

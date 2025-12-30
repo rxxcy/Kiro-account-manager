@@ -48,6 +48,7 @@ const api = {
   backgroundBatchRefresh: (accounts: Array<{
     id: string
     email: string
+    idp?: string
     credentials: {
       refreshToken: string
       clientId?: string
@@ -55,9 +56,10 @@ const api = {
       region?: string
       authMethod?: string
       accessToken?: string
+      provider?: string
     }
-  }>, concurrency?: number): Promise<{ success: boolean; completed: number; successCount: number; failedCount: number }> => {
-    return ipcRenderer.invoke('background-batch-refresh', accounts, concurrency)
+  }>, concurrency?: number, syncInfo?: boolean): Promise<{ success: boolean; completed: number; successCount: number; failedCount: number }> => {
+    return ipcRenderer.invoke('background-batch-refresh', accounts, concurrency, syncInfo)
   },
 
   // 监听后台刷新进度

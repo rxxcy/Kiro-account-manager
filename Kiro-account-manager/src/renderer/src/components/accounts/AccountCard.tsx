@@ -1,6 +1,7 @@
 import { memo, useState, useMemo } from 'react'
 import { Card, CardContent, Badge, Button, Progress } from '../ui'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import type { Account, AccountTag, AccountGroup } from '@/types/account'
 import {
   Check,
@@ -84,7 +85,7 @@ const getSubscriptionColor = (type: string, title?: string): string => {
   return 'bg-gray-500'
 }
 
-const StatusLabels: Record<string, string> = {
+const StatusLabelsZh: Record<string, string> = {
   active: '正常',
   expired: '已过期',
   error: '错误',
@@ -92,25 +93,37 @@ const StatusLabels: Record<string, string> = {
   unknown: '未知'
 }
 
+const StatusLabelsEn: Record<string, string> = {
+  active: 'Active',
+  expired: 'Expired',
+  error: 'Error',
+  refreshing: 'Refreshing',
+  unknown: 'Unknown'
+}
+
 // 格式化 Token 到期时间
-function formatTokenExpiry(expiresAt: number): string {
+function formatTokenExpiry(expiresAt: number, isEn: boolean): string {
   const now = Date.now()
   const diff = expiresAt - now
   
-  if (diff <= 0) return '已过期'
+  if (diff <= 0) return isEn ? 'Expired' : '已过期'
   
   const minutes = Math.floor(diff / (60 * 1000))
   const hours = Math.floor(diff / (60 * 60 * 1000))
   
   if (minutes < 60) {
-    return `${minutes} 分钟`
+    return isEn ? `${minutes}m` : `${minutes} 分钟`
   } else if (hours < 24) {
     const remainingMinutes = minutes % 60
-    return remainingMinutes > 0 ? `${hours} 小时 ${remainingMinutes} 分` : `${hours} 小时`
+    return isEn 
+      ? (remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`)
+      : (remainingMinutes > 0 ? `${hours} 小时 ${remainingMinutes} 分` : `${hours} 小时`)
   } else {
     const days = Math.floor(hours / 24)
     const remainingHours = hours % 24
-    return remainingHours > 0 ? `${days} 天 ${remainingHours} 小时` : `${days} 天`
+    return isEn
+      ? (remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`)
+      : (remainingHours > 0 ? `${days} 天 ${remainingHours} 小时` : `${days} 天`)
   }
 }
 
@@ -133,16 +146,19 @@ export const AccountCard = memo(function AccountCard({
     maskNickname
   } = useAccountsStore()
 
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
+
   const handleSwitch = async (): Promise<void> => {
     const { credentials } = account
     
     // 社交登录只需要 refreshToken，IdC 登录需要 clientId 和 clientSecret
     if (!credentials.refreshToken) {
-      alert('账号凭证不完整，无法切换')
+      alert(isEn ? 'Incomplete credentials, cannot switch' : '账号凭证不完整，无法切换')
       return
     }
     if (credentials.authMethod !== 'social' && (!credentials.clientId || !credentials.clientSecret)) {
-      alert('账号凭证不完整，无法切换')
+      alert(isEn ? 'Incomplete credentials, cannot switch' : '账号凭证不完整，无法切换')
       return
     }
     
@@ -160,7 +176,7 @@ export const AccountCard = memo(function AccountCard({
     if (result.success) {
       setActiveAccount(account.id)
     } else {
-      alert(`切换失败: ${result.error}`)
+      alert(isEn ? `Switch failed: ${result.error}` : `切换失败: ${result.error}`)
     }
   }
 
@@ -180,7 +196,7 @@ export const AccountCard = memo(function AccountCard({
   }
 
   const handleDelete = (): void => {
-    if (confirm(`确定要删除账号 ${maskEmail(account.email)} 吗？`)) {
+    if (confirm(isEn ? `Delete account ${maskEmail(account.email)}?` : `确定要删除账号 ${maskEmail(account.email)} 吗？`)) {
       removeAccount(account.id)
     }
   }
@@ -307,7 +323,7 @@ export const AccountCard = memo(function AccountCard({
                  )}>
                     {account.status === 'refreshing' && <Loader2 className="h-3 w-3 animate-spin" />}
                     {isUnauthorized && <AlertCircle className="h-3 w-3" />}
-                    {isUnauthorized ? '已封禁' : StatusLabels[account.status]}
+                    {isUnauthorized ? (isEn ? 'Banned' : '\u5df2\u5c01\u7981') : (isEn ? StatusLabelsEn : StatusLabelsZh)[account.status]}
                  </div>
               </div>
               <div className="flex items-center gap-2 mt-1">
@@ -334,7 +350,7 @@ export const AccountCard = memo(function AccountCard({
             </Badge>
             {account.isActive && (
               <Badge variant="default" className="ml-auto h-5 bg-green-500 text-white border-0 hover:bg-green-600">
-                当前使用
+                {isEn ? 'Active' : '当前使用'}
               </Badge>
             )}
         </div>
@@ -342,7 +358,7 @@ export const AccountCard = memo(function AccountCard({
         {/* Usage Section */}
         <div className="bg-muted/30 p-3 rounded-lg space-y-2 border border-border/50">
             <div className="flex justify-between items-end text-xs">
-                <span className="text-muted-foreground font-medium">使用量</span>
+                <span className="text-muted-foreground font-medium">{isEn ? 'Usage' : '使用量'}</span>
                 <span className={cn("font-mono font-medium", isHighUsage ? "text-amber-600" : "text-foreground")}>
                    {(account.usage.percentUsed * 100).toFixed(0)}%
                 </span>
@@ -362,7 +378,7 @@ export const AccountCard = memo(function AccountCard({
                       try {
                          return (typeof d === 'string' ? d : new Date(d as Date).toISOString()).split('T')[0]
                       } catch { return 'Unknown' }
-                    })()} 重置
+                    })()} {isEn ? 'reset' : '重置'}
                   </span>
                 )}
             </div>
@@ -374,7 +390,7 @@ export const AccountCard = memo(function AccountCard({
            {account.usage.baseLimit !== undefined && account.usage.baseLimit > 0 && (
              <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-               <span className="text-muted-foreground">基础:</span>
+               <span className="text-muted-foreground">{isEn ? 'Base:' : '基础:'}</span>
                <span className="font-medium">{account.usage.baseCurrent ?? 0}/{account.usage.baseLimit}</span>
              </div>
            )}
@@ -382,11 +398,11 @@ export const AccountCard = memo(function AccountCard({
            {account.usage.freeTrialLimit !== undefined && account.usage.freeTrialLimit > 0 && (
              <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-               <span className="text-muted-foreground">试用:</span>
+               <span className="text-muted-foreground">{isEn ? 'Trial:' : '试用:'}</span>
                <span className="font-medium">{account.usage.freeTrialCurrent ?? 0}/{account.usage.freeTrialLimit}</span>
                {account.usage.freeTrialExpiry && (
                  <span className="text-muted-foreground/70 ml-auto">
-                   至 {(() => {
+                   {isEn ? 'to' : '至'} {(() => {
                       const d = account.usage.freeTrialExpiry as unknown
                       try { return (typeof d === 'string' ? d : new Date(d as Date).toISOString()).split('T')[0] } catch { return '' }
                    })()}
@@ -402,7 +418,7 @@ export const AccountCard = memo(function AccountCard({
                <span className="font-medium">{bonus.current}/{bonus.limit}</span>
                {bonus.expiresAt && (
                  <span className="text-muted-foreground/70 ml-auto">
-                   至 {(() => {
+                   {isEn ? 'to' : '至'} {(() => {
                       const d = bonus.expiresAt as unknown
                       try { return (typeof d === 'string' ? d : new Date(d as Date).toISOString()).split('T')[0] } catch { return '' }
                    })()}
@@ -439,13 +455,13 @@ export const AccountCard = memo(function AccountCard({
                 <div className="flex items-center gap-1">
                    <Clock className="h-3 w-3" />
                    <span className={isExpiringSoon ? "text-amber-600 font-medium" : ""}>
-                      {account.subscription.daysRemaining !== undefined ? `剩 ${account.subscription.daysRemaining} 天` : '-'}
+                      {account.subscription.daysRemaining !== undefined ? (isEn ? `${account.subscription.daysRemaining}d left` : `剩 ${account.subscription.daysRemaining} 天`) : '-'}
                    </span>
                 </div>
-                <div className="flex items-center gap-1" title={account.credentials.expiresAt ? new Date(account.credentials.expiresAt).toLocaleString('zh-CN') : '未知'}>
+                <div className="flex items-center gap-1" title={account.credentials.expiresAt ? new Date(account.credentials.expiresAt).toLocaleString(isEn ? 'en-US' : 'zh-CN') : (isEn ? 'Unknown' : '未知')}>
                    <KeyRound className="h-3 w-3" />
                    <span className={account.credentials.expiresAt && account.credentials.expiresAt - Date.now() < 5 * 60 * 1000 ? "text-red-500 font-medium" : ""}>
-                      Token: {account.credentials.expiresAt ? formatTokenExpiry(account.credentials.expiresAt) : '-'}
+                      Token: {account.credentials.expiresAt ? formatTokenExpiry(account.credentials.expiresAt, isEn) : '-'}
                    </span>
                 </div>
             </div>
@@ -458,32 +474,32 @@ export const AccountCard = memo(function AccountCard({
                    variant="ghost"
                    className="h-7 w-7 hover:bg-primary/10 hover:text-primary transition-colors"
                    onClick={(e) => { e.stopPropagation(); handleSwitch() }}
-                   title="切换到此账号"
+                   title={isEn ? 'Switch to this account' : '切换到此账号'}
                  >
                    <Power className="h-3.5 w-3.5" />
                  </Button>
                )}
                
-               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); handleRefresh() }} disabled={account.status === 'refreshing'} title="检查账户信息（用量、订阅、封禁状态）">
+               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); handleRefresh() }} disabled={account.status === 'refreshing'} title={isEn ? 'Check account info' : '检查账户信息（用量、订阅、封禁状态）'}>
                   <RefreshCw className={cn("h-3.5 w-3.5", account.status === 'refreshing' && "animate-spin")} />
                </Button>
-               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); handleRefreshToken() }} disabled={isRefreshingToken} title="刷新 Token（仅刷新访问令牌）">
+               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); handleRefreshToken() }} disabled={isRefreshingToken} title={isEn ? 'Refresh Token' : '刷新 Token（仅刷新访问令牌）'}>
                   <KeyRound className={cn("h-3.5 w-3.5", isRefreshingToken && "animate-pulse")} />
                </Button>
                
-               <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", copied && "text-green-500")} onClick={(e) => { e.stopPropagation(); handleCopyCredentials() }} title="复制凭证">
+               <Button size="icon" variant="ghost" className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", copied && "text-green-500")} onClick={(e) => { e.stopPropagation(); handleCopyCredentials() }} title={isEn ? 'Copy credentials' : '复制凭证'}>
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                </Button>
 
-               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); onShowDetail() }} title="详情">
+               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); onShowDetail() }} title={isEn ? 'Details' : '详情'}>
                   <Info className="h-3.5 w-3.5" />
                </Button>
                
-               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); onEdit() }} title="编辑">
+               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); onEdit() }} title={isEn ? 'Edit' : '编辑'}>
                   <Edit className="h-3.5 w-3.5" />
                </Button>
                
-               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors" onClick={(e) => { e.stopPropagation(); handleDelete() }} title="删除">
+               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors" onClick={(e) => { e.stopPropagation(); handleDelete() }} title={isEn ? 'Delete' : '删除'}>
                   <Trash2 className="h-3.5 w-3.5" />
                </Button>
             </div>

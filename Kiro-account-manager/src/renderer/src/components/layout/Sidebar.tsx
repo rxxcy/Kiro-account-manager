@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import kiroLogo from '@/assets/kiro-high-resolution-logo-transparent.png'
 import kiroLogoSmall from '@/assets/Kiro Logo.svg'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export type PageType = 'home' | 'accounts' | 'machineId' | 'kiroSettings' | 'settings' | 'about'
 
@@ -13,17 +14,18 @@ interface SidebarProps {
   onToggleCollapse: () => void
 }
 
-const menuItems: { id: PageType; label: string; icon: React.ElementType }[] = [
-  { id: 'home', label: '主页', icon: Home },
-  { id: 'accounts', label: '账户管理', icon: Users },
-  { id: 'machineId', label: '机器码', icon: Fingerprint },
-  { id: 'kiroSettings', label: 'Kiro 设置', icon: Sparkles },
-  { id: 'settings', label: '设置', icon: Settings },
-  { id: 'about', label: '关于', icon: Info },
+const menuItemsConfig: { id: PageType; labelKey: string; icon: React.ElementType }[] = [
+  { id: 'home', labelKey: 'nav.home', icon: Home },
+  { id: 'accounts', labelKey: 'nav.accounts', icon: Users },
+  { id: 'machineId', labelKey: 'nav.machineId', icon: Fingerprint },
+  { id: 'kiroSettings', labelKey: 'nav.kiroSettings', icon: Sparkles },
+  { id: 'settings', labelKey: 'nav.settings', icon: Settings },
+  { id: 'about', labelKey: 'nav.about', icon: Info },
 ]
 
 export function Sidebar({ currentPage, onPageChange, collapsed, onToggleCollapse }: SidebarProps) {
   const { darkMode } = useAccountsStore()
+  const { t } = useTranslation()
 
   return (
     <div 
@@ -47,16 +49,17 @@ export function Sidebar({ currentPage, onPageChange, collapsed, onToggleCollapse
               alt="Kiro" 
               className={cn("h-7 w-auto shrink-0 transition-all", darkMode && "invert brightness-0")} 
             />
-            <span className="font-semibold text-foreground whitespace-nowrap">账户管理器</span>
+            <span className="font-semibold text-foreground whitespace-nowrap">{t('common.unknown') === 'Unknown' ? 'Account Manager' : '账户管理器'}</span>
           </>
         )}
       </div>
 
       {/* Menu Items */}
       <nav className="flex-1 py-4 px-2 space-y-1">
-        {menuItems.map((item) => {
+        {menuItemsConfig.map((item) => {
           const Icon = item.icon
           const isActive = currentPage === item.id
+          const label = t(item.labelKey)
           return (
             <button
               key={item.id}
@@ -68,12 +71,12 @@ export function Sidebar({ currentPage, onPageChange, collapsed, onToggleCollapse
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
               )}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
                 <span className="whitespace-nowrap">
-                  {item.label}
+                  {label}
                 </span>
               )}
             </button>
@@ -86,14 +89,14 @@ export function Sidebar({ currentPage, onPageChange, collapsed, onToggleCollapse
         <button
           onClick={onToggleCollapse}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          title={collapsed ? "展开侧边栏" : "收起侧边栏"}
+          title={collapsed ? (t('common.unknown') === 'Unknown' ? 'Expand' : '展开侧边栏') : (t('common.unknown') === 'Unknown' ? 'Collapse' : '收起侧边栏')}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
             <>
               <ChevronLeft className="h-4 w-4 shrink-0" />
-              <span className="whitespace-nowrap">收起</span>
+              <span className="whitespace-nowrap">{t('common.unknown') === 'Unknown' ? 'Collapse' : '收起'}</span>
             </>
           )}
         </button>

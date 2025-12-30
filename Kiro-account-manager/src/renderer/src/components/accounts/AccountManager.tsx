@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAccountsStore } from '@/store/accounts'
+import { useTranslation } from '@/hooks/useTranslation'
 import { AccountToolbar } from './AccountToolbar'
 import { AccountGrid } from './AccountGrid'
 import { AddAccountDialog } from './AddAccountDialog'
@@ -30,6 +31,8 @@ export function AccountManager({ onBack }: AccountManagerProps): React.ReactNode
   const [showTagDialog, setShowTagDialog] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [isFilterExpanded, setIsFilterExpanded] = useState(false)
+  const { t } = useTranslation()
+  const isEn = t('common.unknown') === 'Unknown'
 
   // 获取要导出的账号列表
   const getExportAccounts = () => {
@@ -191,7 +194,7 @@ export function AccountManager({ onBack }: AccountManagerProps): React.ReactNode
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="text-lg font-semibold text-primary">账户管理</h1>
+            <h1 className="text-lg font-semibold text-primary">{isEn ? 'Accounts' : '账户管理'}</h1>
           </div>
         </div>
         
