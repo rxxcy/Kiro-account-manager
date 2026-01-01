@@ -84,6 +84,11 @@ Configure theme colors, privacy mode, auto refresh, proxy and more.
 
 ![Settings](Kiro-account-manager/resources/设置.png)
 
+### Kiro IDE Settings
+Sync Kiro IDE settings, edit MCP servers, manage user rules (Steering).
+
+![Kiro Settings](Kiro-account-manager/resources/Kiro%20设置.png)
+
 ### About
 View version info, feature list, tech stack and author info.
 
@@ -252,6 +257,14 @@ The project is configured with GitHub Actions workflow for auto building all pla
 ---
 
 ## 📋 Changelog
+
+### v1.3.1 (2025-01-01)
+- 🔧 **Check Account Button Fix**: Fixed the issue where clicking "Check Account Info" button had no visual feedback
+- 🔄 **Auto Refresh Sync Fix**: Fixed the issue where "Sync Account Info" setting was not working during auto refresh
+- 📊 **Usage Precision Setting**: Added option to toggle between integer and decimal display for usage values
+- 🔢 **Precise Usage Data**: Backend now saves precise decimal usage data (e.g., 1.22 instead of 1)
+- ⚙️ **GitHub Actions Optimization**: Removed tag trigger, now only supports manual trigger; release is no longer draft by default
+- 🐛 **Import Fix**: Fixed the issue where accounts with same email but different providers (GitHub/Google) could not be imported
 
 ### v1.3.0 (2025-12-30)
 - 🌐 **Multi-Language Support**: Full English/Chinese bilingual interface

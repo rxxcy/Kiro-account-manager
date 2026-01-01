@@ -884,15 +884,17 @@ app.whenReady().then(() => {
       interface UsageBreakdownItem {
         resourceType?: string
         currentUsage?: number
+        currentUsageWithPrecision?: number
         usageLimit?: number
+        usageLimitWithPrecision?: number
         displayName?: string
         displayNamePlural?: string
         currency?: string
         unit?: string
         overageRate?: number
         overageCap?: number
-        freeTrialInfo?: { currentUsage?: number; usageLimit?: number; freeTrialExpiry?: string; freeTrialStatus?: string }
-        bonuses?: Array<{ bonusCode?: string; displayName?: string; currentUsage?: number; usageLimit?: number; expiresAt?: string }>
+        freeTrialInfo?: { currentUsage?: number; currentUsageWithPrecision?: number; usageLimit?: number; usageLimitWithPrecision?: number; freeTrialExpiry?: string; freeTrialStatus?: string }
+        bonuses?: Array<{ bonusCode?: string; displayName?: string; currentUsage?: number; currentUsageWithPrecision?: number; usageLimit?: number; usageLimitWithPrecision?: number; expiresAt?: string }>
       }
       interface UsageApiResponse {
         userInfo?: { email?: string; userId?: string }
@@ -933,24 +935,24 @@ app.whenReady().then(() => {
         subscriptionType = 'Teams'
       }
 
-      // 基础额度
-      const baseLimit = creditUsage?.usageLimit ?? 0
-      const baseCurrent = creditUsage?.currentUsage ?? 0
+      // 基础额度（使用精确小数）
+      const baseLimit = creditUsage?.usageLimitWithPrecision ?? creditUsage?.usageLimit ?? 0
+      const baseCurrent = creditUsage?.currentUsageWithPrecision ?? creditUsage?.currentUsage ?? 0
 
-      // 试用额度
+      // 试用额度（使用精确小数）
       let freeTrialLimit = 0, freeTrialCurrent = 0, freeTrialExpiry: string | undefined
       if (creditUsage?.freeTrialInfo?.freeTrialStatus === 'ACTIVE') {
-        freeTrialLimit = creditUsage.freeTrialInfo.usageLimit ?? 0
-        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsage ?? 0
+        freeTrialLimit = creditUsage.freeTrialInfo.usageLimitWithPrecision ?? creditUsage.freeTrialInfo.usageLimit ?? 0
+        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsageWithPrecision ?? creditUsage.freeTrialInfo.currentUsage ?? 0
         freeTrialExpiry = creditUsage.freeTrialInfo.freeTrialExpiry
       }
 
-      // 奖励额度
+      // 奖励额度（使用精确小数）
       const bonuses = (creditUsage?.bonuses || []).map(b => ({
         code: b.bonusCode || '',
         name: b.displayName || '',
-        current: b.currentUsage ?? 0,
-        limit: b.usageLimit ?? 0,
+        current: b.currentUsageWithPrecision ?? b.currentUsage ?? 0,
+        limit: b.usageLimitWithPrecision ?? b.usageLimit ?? 0,
         expiresAt: b.expiresAt
       }))
 
@@ -1020,21 +1022,27 @@ app.whenReady().then(() => {
       bonusCode?: string
       displayName?: string
       usageLimit?: number
+      usageLimitWithPrecision?: number
       currentUsage?: number
+      currentUsageWithPrecision?: number
       status?: string
       expiresAt?: string  // API 返回的是 expiresAt
     }
 
     interface FreeTrialInfo {
       usageLimit?: number
+      usageLimitWithPrecision?: number
       currentUsage?: number
+      currentUsageWithPrecision?: number
       freeTrialStatus?: string
       freeTrialExpiry?: string
     }
 
     interface UsageBreakdown {
       usageLimit?: number
+      usageLimitWithPrecision?: number
       currentUsage?: number
+      currentUsageWithPrecision?: number
       displayName?: string
       displayNamePlural?: string
       resourceType?: string
@@ -1085,18 +1093,18 @@ app.whenReady().then(() => {
         (b) => b.resourceType === 'CREDIT' || b.displayName === 'Credits'
       )
 
-      // 解析使用量（详细）
+      // 解析使用量（详细，使用精确小数）
       // 基础额度
-      const baseLimit = creditUsage?.usageLimit ?? 0
-      const baseCurrent = creditUsage?.currentUsage ?? 0
+      const baseLimit = creditUsage?.usageLimitWithPrecision ?? creditUsage?.usageLimit ?? 0
+      const baseCurrent = creditUsage?.currentUsageWithPrecision ?? creditUsage?.currentUsage ?? 0
       
       // 试用额度
       let freeTrialLimit = 0
       let freeTrialCurrent = 0
       let freeTrialExpiry: string | undefined
       if (creditUsage?.freeTrialInfo?.freeTrialStatus === 'ACTIVE') {
-        freeTrialLimit = creditUsage.freeTrialInfo.usageLimit ?? 0
-        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsage ?? 0
+        freeTrialLimit = creditUsage.freeTrialInfo.usageLimitWithPrecision ?? creditUsage.freeTrialInfo.usageLimit ?? 0
+        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsageWithPrecision ?? creditUsage.freeTrialInfo.currentUsage ?? 0
         freeTrialExpiry = creditUsage.freeTrialInfo.freeTrialExpiry
       }
       
@@ -1108,8 +1116,8 @@ app.whenReady().then(() => {
             bonusesData.push({
               code: bonus.bonusCode || '',
               name: bonus.displayName || '',
-              current: bonus.currentUsage ?? 0,
-              limit: bonus.usageLimit ?? 0,
+              current: bonus.currentUsageWithPrecision ?? bonus.currentUsage ?? 0,
+              limit: bonus.usageLimitWithPrecision ?? bonus.usageLimit ?? 0,
               expiresAt: bonus.expiresAt
             })
           }
@@ -1497,11 +1505,15 @@ app.whenReady().then(() => {
                   resourceType?: string
                   displayName?: string
                   usageLimit?: number
+                  usageLimitWithPrecision?: number
                   currentUsage?: number
+                  currentUsageWithPrecision?: number
                   freeTrialInfo?: {
                     freeTrialStatus?: string
                     usageLimit?: number
+                    usageLimitWithPrecision?: number
                     currentUsage?: number
+                    currentUsageWithPrecision?: number
                     freeTrialExpiry?: string
                   }
                 }>
@@ -1554,14 +1566,14 @@ app.whenReady().then(() => {
                 (b) => b.resourceType === 'CREDIT' || b.displayName === 'Credits'
               )
               
-              const baseCurrent = creditUsage?.currentUsage ?? 0
-              const baseLimit = creditUsage?.usageLimit ?? 0
+              const baseCurrent = creditUsage?.currentUsageWithPrecision ?? creditUsage?.currentUsage ?? 0
+              const baseLimit = creditUsage?.usageLimitWithPrecision ?? creditUsage?.usageLimit ?? 0
               let freeTrialCurrent = 0
               let freeTrialLimit = 0
               let freeTrialExpiry: string | undefined
               if (creditUsage?.freeTrialInfo?.freeTrialStatus === 'ACTIVE') {
-                freeTrialLimit = creditUsage.freeTrialInfo.usageLimit ?? 0
-                freeTrialCurrent = creditUsage.freeTrialInfo.currentUsage ?? 0
+                freeTrialLimit = creditUsage.freeTrialInfo.usageLimitWithPrecision ?? creditUsage.freeTrialInfo.usageLimit ?? 0
+                freeTrialCurrent = creditUsage.freeTrialInfo.currentUsageWithPrecision ?? creditUsage.freeTrialInfo.currentUsage ?? 0
                 freeTrialExpiry = creditUsage.freeTrialInfo.freeTrialExpiry
               }
               
@@ -1749,21 +1761,27 @@ app.whenReady().then(() => {
         bonusCode?: string
         displayName?: string
         usageLimit?: number
+        usageLimitWithPrecision?: number
         currentUsage?: number
+        currentUsageWithPrecision?: number
         status?: string
         expiresAt?: string  // API 返回的是 expiresAt
       }
       
       interface FreeTrialInfo {
         usageLimit?: number
+        usageLimitWithPrecision?: number
         currentUsage?: number
+        currentUsageWithPrecision?: number
         freeTrialStatus?: string
         freeTrialExpiry?: string
       }
       
       interface UsageBreakdown {
         usageLimit?: number
+        usageLimitWithPrecision?: number
         currentUsage?: number
+        currentUsageWithPrecision?: number
         resourceType?: string
         displayName?: string
         displayNamePlural?: string
@@ -1811,20 +1829,20 @@ app.whenReady().then(() => {
         subscriptionType = 'Teams'
       }
       
-      // 解析使用量（详细）
+      // 解析使用量（详细，使用精确小数）
       const creditUsage = usageResult.usageBreakdownList?.find(b => b.resourceType === 'CREDIT')
       
       // 基础额度
-      const baseLimit = creditUsage?.usageLimit ?? 0
-      const baseCurrent = creditUsage?.currentUsage ?? 0
+      const baseLimit = creditUsage?.usageLimitWithPrecision ?? creditUsage?.usageLimit ?? 0
+      const baseCurrent = creditUsage?.currentUsageWithPrecision ?? creditUsage?.currentUsage ?? 0
       
       // 试用额度
       let freeTrialLimit = 0
       let freeTrialCurrent = 0
       let freeTrialExpiry: string | undefined
       if (creditUsage?.freeTrialInfo?.freeTrialStatus === 'ACTIVE') {
-        freeTrialLimit = creditUsage.freeTrialInfo.usageLimit ?? 0
-        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsage ?? 0
+        freeTrialLimit = creditUsage.freeTrialInfo.usageLimitWithPrecision ?? creditUsage.freeTrialInfo.usageLimit ?? 0
+        freeTrialCurrent = creditUsage.freeTrialInfo.currentUsageWithPrecision ?? creditUsage.freeTrialInfo.currentUsage ?? 0
         freeTrialExpiry = creditUsage.freeTrialInfo.freeTrialExpiry
       }
       
@@ -1836,8 +1854,8 @@ app.whenReady().then(() => {
             bonuses.push({
               code: bonus.bonusCode || '',
               name: bonus.displayName || '',
-              current: bonus.currentUsage ?? 0,
-              limit: bonus.usageLimit ?? 0,
+              current: bonus.currentUsageWithPrecision ?? bonus.currentUsage ?? 0,
+              limit: bonus.usageLimitWithPrecision ?? bonus.usageLimit ?? 0,
               expiresAt: bonus.expiresAt
             })
           }

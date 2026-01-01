@@ -65,6 +65,9 @@ interface AccountsState {
   // 隐私模式
   privacyMode: boolean
 
+  // 使用量显示精度
+  usagePrecision: boolean // true: 显示精确小数, false: 显示整数
+
   // 代理设置
   proxyEnabled: boolean
   proxyUrl: string // 格式: http://host:port 或 socks5://host:port
@@ -172,6 +175,9 @@ interface AccountsActions {
   maskEmail: (email: string) => string
   maskNickname: (nickname: string | undefined) => string
 
+  // 使用量精度
+  setUsagePrecision: (enabled: boolean) => void
+
   // 代理设置
   setProxy: (enabled: boolean, url?: string) => void
 
@@ -246,6 +252,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
   autoRefreshSyncInfo: true,
   statusCheckInterval: 60,
   privacyMode: false,
+  usagePrecision: false,
   proxyEnabled: false,
   proxyUrl: '',
   autoSwitchEnabled: false,
@@ -819,11 +826,15 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     const result: BatchOperationResult = { success: 0, failed: 0, errors: [] }
     const { accounts: existingAccounts } = get()
     
-    // 检查账户是否已存在（通过 email 或 userId）
-    const isAccountExists = (email: string, userId?: string): boolean => {
-      return Array.from(existingAccounts.values()).some(
-        acc => acc.email === email || (userId && acc.userId === userId)
-      )
+    // 检查账户是否已存在（同邮箱+同provider 或 同userId 才算重复）
+    const isAccountExists = (email: string, userId?: string, provider?: string): boolean => {
+      return Array.from(existingAccounts.values()).some(acc => {
+        // userId 相同则重复
+        if (userId && acc.userId === userId) return true
+        // email 相同且 provider 相同则重复（允许同邮箱不同登录方式）
+        if (acc.email === email && acc.credentials.provider === provider) return true
+        return false
+      })
     }
     
     // 去重：文件内部去重
@@ -859,8 +870,8 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     // 导入账号（跳过已存在的）
     let skipped = 0
     for (const accountData of uniqueAccounts) {
-      // 检查本地是否已存在
-      if (isAccountExists(accountData.email, accountData.userId)) {
+      // 检查本地是否已存在（传入 provider 参数）
+      if (isAccountExists(accountData.email, accountData.userId, accountData.credentials?.provider)) {
         skipped++
         continue
       }
@@ -1013,6 +1024,9 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     const account = accounts.get(id)
 
     if (!account) return
+
+    // 设置刷新状态，提供视觉反馈
+    updateAccountStatus(id, 'refreshing')
 
     try {
       // 通过主进程调用 Kiro API 获取状态（避免 CORS）
@@ -1322,6 +1336,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
           autoRefreshSyncInfo: data.autoRefreshSyncInfo ?? true,
           statusCheckInterval: data.statusCheckInterval ?? 60,
           privacyMode: data.privacyMode ?? false,
+          usagePrecision: data.usagePrecision ?? false,
           proxyEnabled: data.proxyEnabled ?? false,
           proxyUrl: data.proxyUrl ?? '',
           autoSwitchEnabled: data.autoSwitchEnabled ?? false,
@@ -1373,6 +1388,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
       autoRefreshConcurrency,
       statusCheckInterval,
       privacyMode,
+      usagePrecision,
       proxyEnabled,
       proxyUrl,
       autoSwitchEnabled,
@@ -1399,6 +1415,7 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
         autoRefreshConcurrency,
         statusCheckInterval,
         privacyMode,
+        usagePrecision,
         proxyEnabled,
         proxyUrl,
         autoSwitchEnabled,
@@ -1470,6 +1487,13 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
     // 基于原始昵称生成固定的伪装昵称
     const hash = nickname.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
     return `用户${(hash % 100000).toString().padStart(5, '0')}`
+  },
+
+  // ==================== 使用量精度 ====================
+
+  setUsagePrecision: (enabled) => {
+    set({ usagePrecision: enabled })
+    get().saveToStorage()
   },
 
   // ==================== 代理设置 ====================
@@ -1647,10 +1671,10 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
   // ==================== 自动 Token 刷新 ====================
 
   checkAndRefreshExpiringTokens: async () => {
-    const { accounts, refreshAccountToken, checkAccountStatus, autoSwitchEnabled, autoRefreshConcurrency } = get()
+    const { accounts, refreshAccountToken, checkAccountStatus, autoSwitchEnabled, autoRefreshConcurrency, autoRefreshSyncInfo } = get()
     const now = Date.now()
 
-    console.log(`[AutoRefresh] Checking ${accounts.size} accounts...`)
+    console.log(`[AutoRefresh] Checking ${accounts.size} accounts... (syncInfo: ${autoRefreshSyncInfo}, autoSwitch: ${autoSwitchEnabled})`)
 
     // 筛选需要处理的账号
     const accountsToProcess: Array<{ id: string; email: string; needsTokenRefresh: boolean }> = []
@@ -1689,10 +1713,10 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
               // Token 刷新后同步刷新账户信息
               await checkAccountStatus(id)
               console.log(`[AutoRefresh] Account info for ${email} updated`)
-            } else if (autoSwitchEnabled) {
-              // 仅在启用自动换号时才刷新账户信息（用于检测余额）
+            } else if (autoRefreshSyncInfo || autoSwitchEnabled) {
+              // 开启同步检测账户信息或自动换号时，刷新账户信息
               await checkAccountStatus(id)
-              console.log(`[AutoRefresh] Account info for ${email} updated (auto-switch enabled)`)
+              console.log(`[AutoRefresh] Account info for ${email} updated`)
             }
             return { email, success: true }
           } catch (e) {

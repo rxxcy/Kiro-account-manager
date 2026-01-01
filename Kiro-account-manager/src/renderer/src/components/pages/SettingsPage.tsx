@@ -108,6 +108,8 @@ export function SettingsPage() {
   const { 
     privacyMode, 
     setPrivacyMode,
+    usagePrecision,
+    setUsagePrecision,
     autoRefreshEnabled,
     autoRefreshInterval,
     autoRefreshConcurrency,
@@ -115,6 +117,7 @@ export function SettingsPage() {
     setAutoRefresh,
     setAutoRefreshConcurrency,
     setAutoRefreshSyncInfo,
+    checkAndRefreshExpiringTokens,
     proxyEnabled,
     proxyUrl,
     setProxy,
@@ -140,6 +143,16 @@ export function SettingsPage() {
   const [isImporting, setIsImporting] = useState(false)
   const [tempProxyUrl, setTempProxyUrl] = useState(proxyUrl)
   const [themeExpanded, setThemeExpanded] = useState(false)
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    try {
+      await checkAndRefreshExpiringTokens()
+    } finally {
+      setIsManualRefreshing(false)
+    }
+  }
   const themeGroups = isEn ? themeGroupsEn : themeGroupsZh
 
   const handleExport = () => {
@@ -332,6 +345,19 @@ export function SettingsPage() {
               {privacyMode ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
             </Button>
           </div>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div>
+              <p className="font-medium">{isEn ? 'Usage Precision' : '使用量精度'}</p>
+              <p className="text-sm text-muted-foreground">{isEn ? 'Show decimal places for usage values' : '显示使用量的小数精度（如 1.22 而非 1）'}</p>
+            </div>
+            <Button
+              variant={usagePrecision ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUsagePrecision(!usagePrecision)}
+            >
+              {usagePrecision ? (isEn ? 'Decimal' : '小数') : (isEn ? 'Integer' : '整数')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -413,6 +439,20 @@ export function SettingsPage() {
                   onClick={() => setAutoRefreshSyncInfo(!autoRefreshSyncInfo)}
                 >
                   {autoRefreshSyncInfo ? (isEn ? 'On' : '已开启') : (isEn ? 'Off' : '已关闭')}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div>
+                  <p className="font-medium">{isEn ? 'Manual Trigger' : '手动触发'}</p>
+                  <p className="text-sm text-muted-foreground">{isEn ? 'Manually trigger auto-refresh for debugging' : '手动触发一次自动刷新流程（用于调试）'}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  disabled={isManualRefreshing}
+                >
+                  {isManualRefreshing ? (isEn ? 'Refreshing...' : '刷新中...') : (isEn ? 'Trigger Now' : '立即触发')}
                 </Button>
               </div>
             </>

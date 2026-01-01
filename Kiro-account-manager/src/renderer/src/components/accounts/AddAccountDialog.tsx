@@ -62,11 +62,15 @@ type LoginType = 'builderid' | 'google' | 'github'
 export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): React.ReactNode {
   const { addAccount, accounts, batchImportConcurrency } = useAccountsStore()
 
-  // 检查账户是否已存在
-  const isAccountExists = (email: string, userId: string): boolean => {
-    return Array.from(accounts.values()).some(
-      acc => acc.email === email || acc.userId === userId
-    )
+  // 检查账户是否已存在（同邮箱+同provider 或 同userId 才算重复）
+  const isAccountExists = (email: string, userId: string, provider?: string): boolean => {
+    return Array.from(accounts.values()).some(acc => {
+      // userId 相同则重复
+      if (acc.userId === userId) return true
+      // email 相同且 provider 相同则重复（允许同邮箱不同登录方式）
+      if (acc.email === email && acc.credentials.provider === provider) return true
+      return false
+    })
   }
 
   // 导入模式
@@ -182,10 +186,11 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
 
       if (result.success && result.data) {
         const { email, userId } = result.data
+        const providerName = tokenData.provider || 'BuilderId'
         
         // 检查账户是否已存在
-        if (isAccountExists(email, userId)) {
-          setError('该账号已存在，无需重复添加')
+        if (isAccountExists(email, userId, providerName)) {
+          setError(isEn ? 'This account already exists' : '该账号已存在，无需重复添加')
           return
         }
         
@@ -195,7 +200,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
           email,
           userId,
           nickname: email ? email.split('@')[0] : undefined,
-          idp: (tokenData.provider || 'BuilderId') as 'BuilderId' | 'Google' | 'Github',
+          idp: providerName as 'BuilderId' | 'Google' | 'Github',
           credentials: {
             accessToken: result.data.accessToken,
             csrfToken: '',
@@ -427,8 +432,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
           const { email, userId } = result.data
           
           // 检查账户是否已存在（已存在的也从输入框中移除）
-          if (email && userId && isAccountExists(email, userId)) {
-            importResult.errors.push(`#${index + 1}: ${email} 已存在`)
+          if (email && userId && isAccountExists(email, userId, 'BuilderId')) {
+            importResult.errors.push(`#${index + 1}: ${email} ${isEn ? 'already exists' : '已存在'}`)
             return
           }
           
@@ -591,15 +596,15 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
 
         if (result.success && result.data) {
           const { email, userId } = result.data
+          const provider = (cred.provider || 'BuilderId') as 'BuilderId' | 'Github' | 'Google'
           
-          if (isAccountExists(email, userId)) {
+          if (isAccountExists(email, userId, provider)) {
             // 已存在的不记入失败，也从输入框中移除
-            importResult.errors.push(`#${index + 1}: ${email} 已存在`)
+            importResult.errors.push(`#${index + 1}: ${email} ${isEn ? 'already exists' : '已存在'}`)
             return
           }
           
           // 根据 provider 确定 idp 和 authMethod
-          const provider = (cred.provider || 'BuilderId') as 'BuilderId' | 'Github' | 'Google'
           const idpMap: Record<string, 'BuilderId' | 'Github' | 'Google'> = {
             'BuilderId': 'BuilderId',
             'Github': 'Github',
@@ -737,10 +742,11 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
 
       if (result.success && result.data) {
         const { email, userId } = result.data
+        const providerName = provider || 'BuilderId'
         
         // 检查账户是否已存在
-        if (isAccountExists(email, userId)) {
-          setError('该账号已存在，无需重复添加')
+        if (isAccountExists(email, userId, providerName)) {
+          setError(isEn ? 'This account already exists' : '该账号已存在，无需重复添加')
           return
         }
         
@@ -750,7 +756,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps): Re
           email,
           userId,
           nickname: email ? email.split('@')[0] : undefined,
-          idp: 'BuilderId',
+          idp: providerName as 'BuilderId' | 'Github' | 'Google',
           credentials: {
             accessToken: result.data.accessToken,
             csrfToken: '',

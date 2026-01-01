@@ -143,11 +143,20 @@ export const AccountCard = memo(function AccountCard({
     refreshAccountToken,
     toggleSelection,
     maskEmail,
-    maskNickname
+    maskNickname,
+    usagePrecision
   } = useAccountsStore()
 
   const { t } = useTranslation()
   const isEn = t('common.unknown') === 'Unknown'
+
+  // 格式化使用量数值
+  const formatUsage = (value: number): string => {
+    if (usagePrecision) {
+      return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    }
+    return Math.floor(value).toLocaleString()
+  }
 
   const handleSwitch = async (): Promise<void> => {
     const { credentials } = account
@@ -369,7 +378,7 @@ export const AccountCard = memo(function AccountCard({
               indicatorClassName={isHighUsage ? "bg-amber-500" : "bg-primary"}
             />
             <div className="flex justify-between text-[10px] text-muted-foreground pt-0.5">
-                <span>{account.usage.current.toLocaleString()} / {account.usage.limit.toLocaleString()}</span>
+                <span>{formatUsage(account.usage.current)} / {formatUsage(account.usage.limit)}</span>
                 {account.usage.nextResetDate && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -391,7 +400,7 @@ export const AccountCard = memo(function AccountCard({
              <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
                <span className="text-muted-foreground">{isEn ? 'Base:' : '基础:'}</span>
-               <span className="font-medium">{account.usage.baseCurrent ?? 0}/{account.usage.baseLimit}</span>
+               <span className="font-medium">{formatUsage(account.usage.baseCurrent ?? 0)}/{formatUsage(account.usage.baseLimit)}</span>
              </div>
            )}
            {/* 试用额度 */}
@@ -399,7 +408,7 @@ export const AccountCard = memo(function AccountCard({
              <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
                <span className="text-muted-foreground">{isEn ? 'Trial:' : '试用:'}</span>
-               <span className="font-medium">{account.usage.freeTrialCurrent ?? 0}/{account.usage.freeTrialLimit}</span>
+               <span className="font-medium">{formatUsage(account.usage.freeTrialCurrent ?? 0)}/{formatUsage(account.usage.freeTrialLimit)}</span>
                {account.usage.freeTrialExpiry && (
                  <span className="text-muted-foreground/70 ml-auto">
                    {isEn ? 'to' : '至'} {(() => {
@@ -415,7 +424,7 @@ export const AccountCard = memo(function AccountCard({
              <div key={bonus.code} className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 flex-shrink-0" />
                <span className="text-muted-foreground truncate max-w-[80px]" title={bonus.name}>{bonus.name}:</span>
-               <span className="font-medium">{bonus.current}/{bonus.limit}</span>
+               <span className="font-medium">{formatUsage(bonus.current)}/{formatUsage(bonus.limit)}</span>
                {bonus.expiresAt && (
                  <span className="text-muted-foreground/70 ml-auto">
                    {isEn ? 'to' : '至'} {(() => {

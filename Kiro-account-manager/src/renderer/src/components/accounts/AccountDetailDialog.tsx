@@ -54,9 +54,17 @@ export function AccountDetailDialog({
   const usage = account.usage
   const subscription = account.subscription
   const credentials = account.credentials
-  const { maskEmail, maskNickname, privacyMode } = useAccountsStore()
+  const { maskEmail, maskNickname, privacyMode, usagePrecision } = useAccountsStore()
   const { t } = useTranslation()
   const isEn = t('common.unknown') === 'Unknown'
+
+  // 格式化使用量数值
+  const formatUsage = (value: number): string => {
+    if (usagePrecision) {
+      return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    }
+    return Math.floor(value).toLocaleString()
+  }
 
   // 计算奖励总计
   const bonusTotal = usage.bonuses?.reduce((sum, b) => sum + b.limit, 0) ?? 0
@@ -116,8 +124,8 @@ export function AccountDetailDialog({
                    <div className="space-y-1">
                      <div className="text-sm text-muted-foreground font-medium">{isEn ? 'Total Usage' : '总使用量'}</div>
                      <div className="flex items-baseline gap-1.5">
-                       <span className="text-3xl font-bold tracking-tight text-foreground">{usage.current.toLocaleString()}</span>
-                       <span className="text-lg text-muted-foreground font-medium">/ {usage.limit.toLocaleString()}</span>
+                       <span className="text-3xl font-bold tracking-tight text-foreground">{formatUsage(usage.current)}</span>
+                       <span className="text-lg text-muted-foreground font-medium">/ {formatUsage(usage.limit)}</span>
                      </div>
                    </div>
                    <div className={cn(
@@ -139,7 +147,7 @@ export function AccountDetailDialog({
                      {isEn ? 'Base' : '主配额'}
                    </div>
                    <div className="text-xl font-bold tracking-tight">
-                     {usage.baseCurrent ?? 0} <span className="text-sm text-muted-foreground font-normal">/ {usage.baseLimit ?? 0}</span>
+                     {formatUsage(usage.baseCurrent ?? 0)} <span className="text-sm text-muted-foreground font-normal">/ {formatUsage(usage.baseLimit ?? 0)}</span>
                    </div>
                    <div className="text-xs text-muted-foreground mt-1 font-medium">
                      {formatDate(usage.nextResetDate)} {isEn ? 'reset' : '重置'}
@@ -154,7 +162,7 @@ export function AccountDetailDialog({
                      {(usage.freeTrialLimit ?? 0) > 0 && <Badge variant="secondary" className="text-[10px] px-1 h-4 ml-auto">ACTIVE</Badge>}
                    </div>
                    <div className="text-xl font-bold tracking-tight">
-                     {usage.freeTrialCurrent ?? 0} <span className="text-sm text-muted-foreground font-normal">/ {usage.freeTrialLimit ?? 0}</span>
+                     {formatUsage(usage.freeTrialCurrent ?? 0)} <span className="text-sm text-muted-foreground font-normal">/ {formatUsage(usage.freeTrialLimit ?? 0)}</span>
                    </div>
                    <div className="text-xs text-muted-foreground mt-1 font-medium">
                      {usage.freeTrialExpiry ? `${formatDate(usage.freeTrialExpiry)} ${isEn ? 'expires' : '过期'}` : (isEn ? 'No trial' : '无试用额度')}
@@ -168,7 +176,7 @@ export function AccountDetailDialog({
                      {isEn ? 'Bonus' : '奖励总计'}
                    </div>
                    <div className="text-xl font-bold tracking-tight">
-                     {bonusUsed} <span className="text-sm text-muted-foreground font-normal">/ {bonusTotal}</span>
+                     {formatUsage(bonusUsed)} <span className="text-sm text-muted-foreground font-normal">/ {formatUsage(bonusTotal)}</span>
                    </div>
                    <div className="text-xs text-muted-foreground mt-1 font-medium">
                      {isEn ? `${usage.bonuses?.length ?? 0} active` : `${usage.bonuses?.length ?? 0} 个生效奖励`}
@@ -197,7 +205,7 @@ export function AccountDetailDialog({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold">{bonus.current} <span className="text-muted-foreground font-normal">/ {bonus.limit}</span></div>
+                      <div className="text-sm font-bold">{formatUsage(bonus.current)} <span className="text-muted-foreground font-normal">/ {formatUsage(bonus.limit)}</span></div>
                       <div className="text-[10px] text-blue-600 font-medium">
                          {isEn ? 'Used' : '已用'} {((bonus.current / bonus.limit) * 100).toFixed(0)}%
                       </div>

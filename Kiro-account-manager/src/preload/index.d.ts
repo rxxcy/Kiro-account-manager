@@ -11,6 +11,7 @@ interface AccountData {
   autoRefreshSyncInfo?: boolean
   statusCheckInterval: number
   privacyMode?: boolean
+  usagePrecision?: boolean
   proxyEnabled?: boolean
   proxyUrl?: string
   autoSwitchEnabled?: boolean
