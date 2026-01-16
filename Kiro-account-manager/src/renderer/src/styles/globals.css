@@ -323,3 +323,64 @@ body[class*="theme-"] ::-webkit-scrollbar-thumb:hover,
 body.dark[class*="theme-"] ::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-primary);
 }
+
+/* 流光边框动画 */
+@keyframes border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-gradient {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}
+
+.active-glow-border {
+  position: relative;
+  background: linear-gradient(var(--color-card), var(--color-card)) padding-box,
+    conic-gradient(
+      from var(--angle),
+      var(--color-primary),
+      #f472b6,
+      #c084fc,
+      #60a5fa,
+      #34d399,
+      #fbbf24,
+      var(--color-primary)
+    ) border-box;
+  border: 2px solid transparent !important;
+  animation: rotate-gradient 3s linear infinite;
+}
+
+/* 深色模式下流光更亮 */
+.dark .active-glow-border {
+  background: linear-gradient(var(--color-card), var(--color-card)) padding-box,
+    conic-gradient(
+      from var(--angle),
+      var(--color-primary),
+      #f472b6,
+      #c084fc,
+      #60a5fa,
+      #34d399,
+      #fbbf24,
+      var(--color-primary)
+    ) border-box;
+  filter: brightness(1.1);
+}

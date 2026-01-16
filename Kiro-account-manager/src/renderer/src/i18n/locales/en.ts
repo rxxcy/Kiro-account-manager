@@ -46,6 +46,7 @@ const en = {
     accounts: 'Accounts',
     machineId: 'Machine ID',
     kiroSettings: 'Kiro Settings',
+    proxy: 'API Proxy',
     settings: 'Settings',
     about: 'About'
   },

@@ -5,6 +5,14 @@
 </p>
 
 <p align="center">
+  <strong>QQ 交流群: 653516618</strong>
+</p>
+
+<p align="center">
+  <img src="Kiro-account-manager/src/renderer/src/assets/交流群.png" width="200" alt="QQ 交流群">
+</p>
+
+<p align="center">
   <strong>一个功能强大的 Kiro IDE 多账号管理工具</strong>
 </p>
 
@@ -83,6 +91,11 @@
 配置主题颜色、隐私模式、自动刷新、代理等选项。
 
 ![设置](Kiro-account-manager/resources/设置.png)
+
+### API 反代服务
+提供 OpenAI 和 Claude 兼容的 API 端点，支持多账号轮询、Token 自动刷新、请求重试等功能。
+
+![API 反代服务](Kiro-account-manager/resources/API%20反代服务.png)
 
 ### Kiro IDE 设置
 同步 Kiro IDE 设置，编辑 MCP 服务器，管理用户规则（Steering）。
@@ -258,8 +271,20 @@ npx electron-builder --linux --arm64
 
 ## 📋 更新日志
 
-### v1.3.4 (2025-01-15)
-
+### v1.3.4 (2025-01-16)
+- 🐛 **多账号激活状态修复**: 修复部分设备切换账号时多个账号同时显示“当前使用”的问题
+- ✨ **流光边框效果**: 当前使用的账号卡片添加动态流光边框效果
+- 💬 **QQ 交流群**: README 添加 QQ 交流群信息
+- 🚀 **API 反代服务增强**:
+  - Token 自动刷新（请求前检测过期）
+  - 请求重试机制（401/403/429/5xx 智能处理）
+  - IDC 认证支持 + 首选端点配置
+  - Agentic 模式检测 + Thinking 模式支持
+  - 系统提示注入 + 图像处理
+  - 使用量统计增强 + 管理 API 端点
+- 🎨 **API 反代页面美化**: 界面样式与其他页面保持一致，跟随主题色
+- 📖 **使用说明文档**: 新增 API 反代服务使用指南
+- 🐛 **正常账号统计修复**: 修复首页“正常账号”统计数据与实际不符的问题
 
 ### v1.3.3 (2025-01-15)
 - 🍎 **macOS 机器码修复**: 修复修改机器码后刷新仍显示原始机器码的问题

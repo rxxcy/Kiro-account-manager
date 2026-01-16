@@ -5,6 +5,14 @@
 </p>
 
 <p align="center">
+  <strong>QQ Group: 653516618</strong>
+</p>
+
+<p align="center">
+  <img src="Kiro-account-manager/src/renderer/src/assets/交流群.png" width="200" alt="QQ Group">
+</p>
+
+<p align="center">
   <strong>A powerful multi-account management tool for Kiro IDE</strong>
 </p>
 
@@ -83,6 +91,11 @@ Manage device identifier, prevent account association bans, backup and restore.
 Configure theme colors, privacy mode, auto refresh, proxy and more.
 
 ![Settings](Kiro-account-manager/resources/设置.png)
+
+### API Proxy Service
+Provides OpenAI and Claude compatible API endpoints with multi-account rotation, auto token refresh, request retry and more.
+
+![API Proxy Service](Kiro-account-manager/resources/API%20反代服务.png)
 
 ### Kiro IDE Settings
 Sync Kiro IDE settings, edit MCP servers, manage user rules (Steering).
@@ -258,6 +271,20 @@ The project is configured with GitHub Actions workflow for auto building all pla
 
 ## 📋 Changelog
 
+### v1.3.4 (2025-01-16)
+- 🐛 **Multi-Account Active State Fix**: Fixed the issue where multiple accounts showed "Active" status simultaneously on some devices
+- ✨ **Glow Border Effect**: Added animated glow border effect for the currently active account card
+- 💬 **QQ Group**: Added QQ group information to README
+- 🚀 **API Proxy Service Enhancement**:
+  - Auto token refresh before expiry
+  - Request retry mechanism (smart handling for 401/403/429/5xx)
+  - IDC authentication support + preferred endpoint config
+  - Agentic mode detection + Thinking mode support
+  - System prompt injection + image processing
+  - Enhanced usage statistics + management API endpoints
+- 🎨 **API Proxy Page UI Update**: Consistent styling with other pages, follows theme color
+- 📖 **Usage Guide**: Added API proxy service usage guide documentation
+- 🐛 **Active Account Stats Fix**: Fixed "Active Accounts" count mismatch on homepage
 
 ### v1.3.3 (2025-01-15)
 - 🍎 **macOS Machine ID Fix**: Fixed the issue where modified machine ID still showed the original ID after refresh

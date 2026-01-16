@@ -256,15 +256,9 @@ export const AccountCard = memo(function AccountCard({
     `
   } : {}
 
-  // 当前使用的高级感样式（金色）- 优先级次之
+  // 当前使用的高级感样式 - 流光边框时仅保留外发光
   const activeGlowStyle: React.CSSProperties = account.isActive ? {
-    backgroundColor: 'var(--card-active-bg)',
-    borderColor: 'var(--card-active-border)',
-    boxShadow: `
-      0 0 0 1px var(--card-active-ring),
-      0 8px 24px -4px var(--card-active-shadow),
-      inset 4px 0 0 0 var(--card-active-accent)
-    `
+    boxShadow: '0 8px 24px -4px var(--card-active-shadow)'
   } : {}
 
   // 最终样式合并逻辑
@@ -287,7 +281,7 @@ export const AccountCard = memo(function AccountCard({
         'relative transition-all duration-300 hover:shadow-lg cursor-pointer h-full flex flex-col overflow-hidden border',
         // 边框颜色优先级
         isUnauthorized ? 'border-red-400/50' :
-        account.isActive ? 'border-amber-400/50 dark:border-amber-400/30' :
+        account.isActive ? 'border-transparent active-glow-border' :
         '',
         
         isSelected && !account.isActive && !isUnauthorized && 'bg-primary/5',

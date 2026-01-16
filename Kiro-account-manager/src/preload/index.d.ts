@@ -484,6 +484,47 @@ interface KiroApi {
 
   // 删除 MCP 服务器
   deleteMcpServer: (name: string) => Promise<{ success: boolean; error?: string }>
+
+  // ============ Kiro API 反代服务器 ============
+
+  // 启动反代服务器
+  proxyStart: (config?: { port?: number; host?: string; enableMultiAccount?: boolean; logRequests?: boolean }) => Promise<{ success: boolean; port?: number; error?: string }>
+
+  // 停止反代服务器
+  proxyStop: () => Promise<{ success: boolean; error?: string }>
+
+  // 获取反代服务器状态
+  proxyGetStatus: () => Promise<{ running: boolean; config: unknown; stats: unknown }>
+
+  // 更新反代服务器配置
+  proxyUpdateConfig: (config: { port?: number; host?: string; enableMultiAccount?: boolean; logRequests?: boolean }) => Promise<{ success: boolean; config?: unknown; error?: string }>
+
+  // 添加账号到反代池
+  proxyAddAccount: (account: { id: string; email?: string; accessToken: string; refreshToken?: string; profileArn?: string; expiresAt?: number }) => Promise<{ success: boolean; accountCount?: number; error?: string }>
+
+  // 从反代池移除账号
+  proxyRemoveAccount: (accountId: string) => Promise<{ success: boolean; accountCount?: number; error?: string }>
+
+  // 同步账号到反代池（批量更新）
+  proxySyncAccounts: (accounts: Array<{ id: string; email?: string; accessToken: string; refreshToken?: string; profileArn?: string; expiresAt?: number }>) => Promise<{ success: boolean; accountCount?: number; error?: string }>
+
+  // 获取反代池账号列表
+  proxyGetAccounts: () => Promise<{ accounts: unknown[]; availableCount: number }>
+
+  // 重置反代池状态
+  proxyResetPool: () => Promise<{ success: boolean; error?: string }>
+
+  // 监听反代请求事件
+  onProxyRequest: (callback: (info: { path: string; method: string; accountId?: string }) => void) => () => void
+
+  // 监听反代响应事件
+  onProxyResponse: (callback: (info: { path: string; status: number; tokens?: number; error?: string }) => void) => () => void
+
+  // 监听反代错误事件
+  onProxyError: (callback: (error: string) => void) => () => void
+
+  // 监听反代状态变化事件
+  onProxyStatusChange: (callback: (status: { running: boolean; port: number }) => void) => () => void
 }
 
 declare global {

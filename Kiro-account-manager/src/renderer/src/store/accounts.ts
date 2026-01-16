@@ -1333,6 +1333,14 @@ export const useAccountsStore = create<AccountsStore>()((set, get) => ({
           console.warn('[Store] Failed to sync local active account:', e)
         }
 
+        // 根据 activeAccountId 重新同步所有账号的 isActive 状态，确保只有一个账号为激活状态
+        for (const [id, account] of accounts) {
+          const shouldBeActive = id === activeAccountId
+          if (account.isActive !== shouldBeActive) {
+            accounts.set(id, { ...account, isActive: shouldBeActive })
+          }
+        }
+
         set({
           accounts,
           groups: new Map(Object.entries(data.groups ?? {}) as [string, AccountGroup][]),

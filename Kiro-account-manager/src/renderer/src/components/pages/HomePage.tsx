@@ -66,7 +66,7 @@ export function HomePage() {
     },
     { 
       label: isEn ? 'Active' : '正常账号', 
-      value: stats.activeCount, 
+      value: stats.byStatus?.active || 0, 
       icon: CheckCircle, 
       color: 'text-green-500',
       bgColor: 'bg-green-500/10'

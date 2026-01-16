@@ -6,6 +6,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { writeFile, readFile } from 'fs/promises'
 import { encode, decode } from 'cbor-x'
 import icon from '../../resources/icon.png?asset'
+import { ProxyServer, type ProxyAccount, type ProxyConfig } from './proxy'
 
 // ============ 自动更新配置 ============
 autoUpdater.autoDownload = false
@@ -94,6 +95,79 @@ function applyProxySettings(enabled: boolean, url: string): void {
     delete process.env.https_proxy
     console.log('[Proxy] Disabled')
   }
+}
+
+// ============ Kiro API 反代服务器 ============
+let proxyServer: ProxyServer | null = null
+
+function initProxyServer(): ProxyServer {
+  if (proxyServer) return proxyServer
+
+  proxyServer = new ProxyServer(
+    {
+      enabled: false,
+      port: 5580,
+      host: '127.0.0.1',
+      enableMultiAccount: true,
+      selectedAccountIds: [],
+      logRequests: true,
+      maxConcurrent: 10,
+      maxRetries: 3,
+      retryDelayMs: 1000,
+      tokenRefreshBeforeExpiry: 300 // 5分钟提前刷新
+    },
+    {
+      onRequest: (info) => {
+        mainWindow?.webContents.send('proxy-request', info)
+      },
+      onResponse: (info) => {
+        mainWindow?.webContents.send('proxy-response', info)
+      },
+      onError: (error) => {
+        console.error('[ProxyServer] Error:', error)
+        mainWindow?.webContents.send('proxy-error', error.message)
+      },
+      onStatusChange: (running, port) => {
+        mainWindow?.webContents.send('proxy-status-change', { running, port })
+      },
+      // Token 刷新回调 - 复用已有的刷新逻辑
+      onTokenRefresh: async (account) => {
+        try {
+          console.log(`[ProxyServer] Refreshing token for ${account.email || account.id}`)
+          const refreshResult = await refreshTokenByMethod(
+            account.refreshToken || '',
+            account.clientId || '',
+            account.clientSecret || '',
+            account.region || 'us-east-1',
+            account.authMethod
+          )
+
+          if (refreshResult.success && refreshResult.accessToken) {
+            return {
+              success: true,
+              accessToken: refreshResult.accessToken,
+              refreshToken: refreshResult.refreshToken,
+              expiresAt: Date.now() + (refreshResult.expiresIn || 3600) * 1000
+            }
+          }
+          return { success: false, error: refreshResult.error || 'Token 刷新失败' }
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+        }
+      },
+      // 账号更新回调 - 通知渲染进程更新账号数据
+      onAccountUpdate: (account) => {
+        mainWindow?.webContents.send('proxy-account-update', {
+          id: account.id,
+          accessToken: account.accessToken,
+          refreshToken: account.refreshToken,
+          expiresAt: account.expiresAt
+        })
+      }
+    }
+  )
+
+  return proxyServer
 }
 
 // ============ 隐私模式打开浏览器 ============
@@ -3080,6 +3154,125 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error('[KiroSettings] Failed to save steering file:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Failed to save file' }
+    }
+  })
+
+  // ============ Kiro API 反代服务器 IPC ============
+
+  // IPC: 启动反代服务器
+  ipcMain.handle('proxy-start', async (_event, config?: Partial<ProxyConfig>) => {
+    try {
+      const server = initProxyServer()
+      if (config) {
+        server.updateConfig(config)
+      }
+      await server.start()
+      return { success: true, port: server.getConfig().port }
+    } catch (error) {
+      console.error('[ProxyServer] Start failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to start proxy server' }
+    }
+  })
+
+  // IPC: 停止反代服务器
+  ipcMain.handle('proxy-stop', async () => {
+    try {
+      if (proxyServer) {
+        await proxyServer.stop()
+      }
+      return { success: true }
+    } catch (error) {
+      console.error('[ProxyServer] Stop failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to stop proxy server' }
+    }
+  })
+
+  // IPC: 获取反代服务器状态
+  ipcMain.handle('proxy-get-status', () => {
+    if (!proxyServer) {
+      return { running: false, config: null, stats: null }
+    }
+    return {
+      running: proxyServer.isRunning(),
+      config: proxyServer.getConfig(),
+      stats: proxyServer.getStats()
+    }
+  })
+
+  // IPC: 更新反代服务器配置
+  ipcMain.handle('proxy-update-config', async (_event, config: Partial<ProxyConfig>) => {
+    try {
+      const server = initProxyServer()
+      server.updateConfig(config)
+      return { success: true, config: server.getConfig() }
+    } catch (error) {
+      console.error('[ProxyServer] Update config failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to update config' }
+    }
+  })
+
+  // IPC: 添加账号到反代池
+  ipcMain.handle('proxy-add-account', (_event, account: ProxyAccount) => {
+    try {
+      const server = initProxyServer()
+      server.getAccountPool().addAccount(account)
+      return { success: true, accountCount: server.getAccountPool().size }
+    } catch (error) {
+      console.error('[ProxyServer] Add account failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to add account' }
+    }
+  })
+
+  // IPC: 从反代池移除账号
+  ipcMain.handle('proxy-remove-account', (_event, accountId: string) => {
+    try {
+      const server = initProxyServer()
+      server.getAccountPool().removeAccount(accountId)
+      return { success: true, accountCount: server.getAccountPool().size }
+    } catch (error) {
+      console.error('[ProxyServer] Remove account failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to remove account' }
+    }
+  })
+
+  // IPC: 同步账号到反代池（批量更新）
+  ipcMain.handle('proxy-sync-accounts', (_event, accounts: ProxyAccount[]) => {
+    try {
+      const server = initProxyServer()
+      const pool = server.getAccountPool()
+      pool.clear()
+      for (const account of accounts) {
+        pool.addAccount(account)
+      }
+      return { success: true, accountCount: pool.size }
+    } catch (error) {
+      console.error('[ProxyServer] Sync accounts failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to sync accounts' }
+    }
+  })
+
+  // IPC: 获取反代池账号列表
+  ipcMain.handle('proxy-get-accounts', () => {
+    if (!proxyServer) {
+      return { accounts: [], availableCount: 0 }
+    }
+    const pool = proxyServer.getAccountPool()
+    return {
+      accounts: pool.getAllAccounts(),
+      availableCount: pool.availableCount
+    }
+  })
+
+  // IPC: 重置反代池状态
+  ipcMain.handle('proxy-reset-pool', () => {
+    try {
+      if (proxyServer) {
+        proxyServer.getAccountPool().reset()
+      }
+      return { success: true }
+    } catch (error) {
+      console.error('[ProxyServer] Reset pool failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to reset pool' }
     }
   })
 
