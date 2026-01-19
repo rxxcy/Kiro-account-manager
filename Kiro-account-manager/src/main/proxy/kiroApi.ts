@@ -145,6 +145,42 @@ export function injectSystemPrompts(
   return result
 }
 
+// 将工具结果转换为文本格式（因为 Kiro API 不支持 toolResults 字段）
+function formatToolResultsAsText(toolResults: KiroToolResult[]): string {
+  if (toolResults.length === 0) return ''
+  
+  let text = '\n\n--- TOOL RESULTS ---\n'
+  for (const tr of toolResults) {
+    const resultText = tr.content.map(c => c.text).join('\n')
+    text += `[Tool Result for ${tr.toolUseId}] (status: ${tr.status}):\n${resultText}\n\n`
+  }
+  text += '--- END TOOL RESULTS ---\n'
+  return text
+}
+
+// 将历史消息转换为文本格式（因为 Kiro API 不支持 history 字段）
+function formatHistoryAsText(history: KiroHistoryMessage[]): string {
+  if (history.length === 0) return ''
+  
+  let text = '\n\n--- CONVERSATION HISTORY ---\n'
+  for (const msg of history) {
+    if (msg.userInputMessage) {
+      text += `[User]: ${msg.userInputMessage.content}\n\n`
+    }
+    if (msg.assistantResponseMessage) {
+      text += `[Assistant]: ${msg.assistantResponseMessage.content}\n`
+      if (msg.assistantResponseMessage.toolUses && msg.assistantResponseMessage.toolUses.length > 0) {
+        for (const tu of msg.assistantResponseMessage.toolUses) {
+          text += `  [Tool Call: ${tu.name}] (id: ${tu.toolUseId})\n`
+        }
+      }
+      text += '\n'
+    }
+  }
+  text += '--- END HISTORY ---\n'
+  return text
+}
+
 // 构建 Kiro API 请求负载
 export function buildKiroPayload(
   content: string,
@@ -157,8 +193,23 @@ export function buildKiroPayload(
   profileArn?: string,
   inferenceConfig?: { maxTokens?: number; temperature?: number; topP?: number }
 ): KiroPayload {
+  // Kiro API 不支持 history 和 toolResults 字段，需要将它们嵌入到 content 中
+  let finalContent = content
+  
+  // 将历史消息转换为文本并添加到 content
+  if (history.length > 0) {
+    const historyText = formatHistoryAsText(history)
+    finalContent = historyText + finalContent
+  }
+  
+  // 将工具结果转换为文本并添加到 content
+  if (toolResults.length > 0) {
+    const toolResultsText = formatToolResultsAsText(toolResults)
+    finalContent = finalContent + toolResultsText
+  }
+
   const userInputMessage: KiroUserInputMessage = {
-    content,
+    content: finalContent,
     modelId,
     origin
   }
@@ -167,13 +218,9 @@ export function buildKiroPayload(
     userInputMessage.images = images
   }
 
-  if (tools.length > 0 || toolResults.length > 0) {
-    userInputMessage.userInputMessageContext = {}
-    if (tools.length > 0) {
-      userInputMessage.userInputMessageContext.tools = tools
-    }
-    if (toolResults.length > 0) {
-      userInputMessage.userInputMessageContext.toolResults = toolResults
+  if (tools.length > 0) {
+    userInputMessage.userInputMessageContext = {
+      tools
     }
   }
 
@@ -185,10 +232,6 @@ export function buildKiroPayload(
         userInputMessage
       }
     }
-  }
-
-  if (history.length > 0) {
-    payload.conversationState.history = history
   }
 
   if (profileArn) {
@@ -216,7 +259,7 @@ function getAuthHeaders(account: ProxyAccount, endpoint: typeof KIRO_ENDPOINTS[0
   const isIDC = account.authMethod === 'idc'
   
   return {
-    'Content-Type': 'application/x-amz-json-1.0',
+    'Content-Type': 'application/json',
     'Accept': '*/*',
     'X-Amz-Target': endpoint.amzTarget,
     'User-Agent': isIDC ? KIRO_CLI_USER_AGENT : KIRO_USER_AGENT,
@@ -265,6 +308,13 @@ export async function callKiroApiStream(
         payload.conversationState.currentMessage.userInputMessage.origin = endpoint.origin
       }
 
+      // 调试：打印请求体摘要
+      const payloadStr = JSON.stringify(payload)
+      console.log(`[KiroAPI] Request to ${endpoint.name}:`)
+      console.log(`[KiroAPI]   - Content length: ${payload.conversationState.currentMessage.userInputMessage?.content?.length || 0}`)
+      console.log(`[KiroAPI]   - Tools count: ${payload.conversationState.currentMessage.userInputMessage?.userInputMessageContext?.tools?.length || 0}`)
+      console.log(`[KiroAPI]   - Payload size: ${payloadStr.length} bytes`)
+      
       const headers = getAuthHeaders(account, endpoint)
       const response = await fetch(endpoint.url, {
         method: 'POST',

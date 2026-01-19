@@ -313,15 +313,39 @@ export class ProxyServer {
 
   // 获取可用账号（包含 Token 刷新检查）
   private async getAvailableAccount(): Promise<ProxyAccount | null> {
-    const account = this.accountPool.getNextAccount()
+    let account: ProxyAccount | null
+    
+    // 检查是否启用多账号轮询
+    if (this.config.enableMultiAccount) {
+      account = this.accountPool.getNextAccount()
+    } else {
+      // 禁用多账号轮询时，优先使用指定的账号
+      if (this.config.selectedAccountIds && this.config.selectedAccountIds.length > 0) {
+        // 使用指定的第一个账号
+        account = this.accountPool.getAccount(this.config.selectedAccountIds[0])
+        if (!account) {
+          console.log(`[ProxyServer] Selected account ${this.config.selectedAccountIds[0]} not found, using first available`)
+          const allAccounts = this.accountPool.getAllAccounts()
+          account = allAccounts.length > 0 ? allAccounts[0] : null
+        }
+      } else {
+        // 没有指定账号，使用第一个可用账号
+        const allAccounts = this.accountPool.getAllAccounts()
+        account = allAccounts.length > 0 ? allAccounts[0] : null
+      }
+    }
+    
     if (!account) return null
 
     // 检查是否需要刷新 Token
     if (this.isTokenExpiringSoon(account)) {
       const refreshed = await this.refreshToken(account)
       if (!refreshed) {
-        // 刷新失败，尝试获取下一个账号
-        return this.accountPool.getNextAccount()
+        // 刷新失败，如果启用多账号才尝试获取下一个账号
+        if (this.config.enableMultiAccount) {
+          return this.accountPool.getNextAccount()
+        }
+        return null
       }
       // 返回更新后的账号
       return this.accountPool.getAccount(account.id)
@@ -360,11 +384,13 @@ export class ProxyServer {
             currentAccount = this.accountPool.getAccount(currentAccount.id) || currentAccount
             continue
           }
-          // 刷新失败，切换账号
-          const nextAccount = this.accountPool.getNextAccount()
-          if (nextAccount && nextAccount.id !== currentAccount.id) {
-            currentAccount = nextAccount
-            continue
+          // 刷新失败，只在启用多账号时切换账号
+          if (this.config.enableMultiAccount) {
+            const nextAccount = this.accountPool.getNextAccount()
+            if (nextAccount && nextAccount.id !== currentAccount.id) {
+              currentAccount = nextAccount
+              continue
+            }
           }
         }
 
@@ -373,8 +399,8 @@ export class ProxyServer {
           console.log('[ProxyServer] Quota/throttle error, switching endpoint or account')
           this.accountPool.recordError(currentAccount.id, true)
           endpointIndex = (endpointIndex + 1) % 2 // 切换端点
-          if (endpointIndex === 0) {
-            // 已尝试所有端点，切换账号
+          if (endpointIndex === 0 && this.config.enableMultiAccount) {
+            // 已尝试所有端点，只在启用多账号时切换账号
             const nextAccount = this.accountPool.getNextAccount()
             if (nextAccount && nextAccount.id !== currentAccount.id) {
               currentAccount = nextAccount

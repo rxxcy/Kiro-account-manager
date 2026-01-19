@@ -271,6 +271,16 @@ The project is configured with GitHub Actions workflow for auto building all pla
 
 ## 📋 Changelog
 
+### v1.4.0 (2025-01-19)
+- 🔧 **API 400 Error Fix**: Fixed Kiro API not supporting toolResults and history fields, now embedded as text
+- 🔄 **Multi-Account Toggle Fix**: Fixed issue where accounts still switched when multi-account polling was disabled
+- 👤 **Specify Account Feature**: Can now specify which account to use when multi-account polling is disabled
+- 🎯 **Account Select Dialog**: New account selection dialog showing email, subscription type, usage progress bar, and status
+- 🔍 **Account Search**: Account selection dialog supports searching by email, ID, or subscription type
+- 🚫 **Banned Status Display**: Account selection dialog correctly shows banned/error/expired status
+- 💾 **Proxy Config Persistence Fix**: Fixed port, host, API Key, preferred endpoint, max retries not persisting after restart
+- 🎨 **Subscription Color Consistency**: Account selection dialog subscription colors now match account cards
+
 ### v1.3.9 (2025-01-19)
 - 🔐 **Enterprise Login Fix**: Fixed IAM Identity Center SSO login using Authorization Code Grant with PKCE flow
 - 🔧 **Enterprise Switch Fix**: Fixed account switching for Enterprise accounts by using correct startUrl to calculate clientIdHash

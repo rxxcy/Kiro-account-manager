@@ -114,19 +114,26 @@ let proxyServer: ProxyServer | null = null
 function initProxyServer(): ProxyServer {
   if (proxyServer) return proxyServer
 
+  // 从 store 加载保存的配置，如果没有则使用默认配置
+  const savedConfig = store?.get('proxyConfig') as Partial<ProxyConfig> | undefined
+  const defaultConfig: ProxyConfig = {
+    enabled: false,
+    port: 5580,
+    host: '127.0.0.1',
+    enableMultiAccount: true,
+    selectedAccountIds: [],
+    logRequests: true,
+    maxConcurrent: 10,
+    maxRetries: 3,
+    retryDelayMs: 1000,
+    tokenRefreshBeforeExpiry: 300 // 5分钟提前刷新
+  }
+  
+  // 合并保存的配置和默认配置
+  const config: ProxyConfig = savedConfig ? { ...defaultConfig, ...savedConfig } : defaultConfig
+
   proxyServer = new ProxyServer(
-    {
-      enabled: false,
-      port: 5580,
-      host: '127.0.0.1',
-      enableMultiAccount: true,
-      selectedAccountIds: [],
-      logRequests: true,
-      maxConcurrent: 10,
-      maxRetries: 3,
-      retryDelayMs: 1000,
-      tokenRefreshBeforeExpiry: 300 // 5分钟提前刷新
-    },
+    config,
     {
       onRequest: (info) => {
         mainWindow?.webContents.send('proxy-request', info)

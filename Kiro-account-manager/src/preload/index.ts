@@ -579,7 +579,7 @@ const api = {
   },
 
   // 更新反代服务器配置
-  proxyUpdateConfig: (config: { port?: number; host?: string; enableMultiAccount?: boolean; logRequests?: boolean }): Promise<{ success: boolean; config?: unknown; error?: string }> => {
+  proxyUpdateConfig: (config: { port?: number; host?: string; apiKey?: string; enableMultiAccount?: boolean; selectedAccountIds?: string[]; logRequests?: boolean; autoStart?: boolean; maxRetries?: number; preferredEndpoint?: 'codewhisperer' | 'amazonq' }): Promise<{ success: boolean; config?: unknown; error?: string }> => {
     return ipcRenderer.invoke('proxy-update-config', config)
   },
 

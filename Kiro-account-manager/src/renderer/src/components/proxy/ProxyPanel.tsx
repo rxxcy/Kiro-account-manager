@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Play, Square, RefreshCw, Copy, Check, Server, Users, Activity, AlertCircle, Globe, Zap, Loader2, FileText, Eye, EyeOff, Dices, Cpu } from 'lucide-react'
+import { Play, Square, RefreshCw, Copy, Check, Server, Users, Activity, AlertCircle, Globe, Zap, Loader2, FileText, Eye, EyeOff, Dices, Cpu, UserCheck } from 'lucide-react'
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Switch, Badge, Select } from '../ui'
 import { useAccountsStore } from '../../store/accounts'
 import { useTranslation } from '../../hooks/useTranslation'
 import { ProxyLogsDialog } from './ProxyLogsDialog'
 import { ModelsDialog } from './ModelsDialog'
+import { AccountSelectDialog } from './AccountSelectDialog'
 
 interface ProxyStats {
   totalRequests: number
@@ -20,6 +21,7 @@ interface ProxyConfig {
   host: string
   apiKey?: string
   enableMultiAccount: boolean
+  selectedAccountId?: string
   logRequests: boolean
   maxRetries?: number
   preferredEndpoint?: 'codewhisperer' | 'amazonq'
@@ -49,6 +51,7 @@ export function ProxyPanel() {
   const [refreshSuccess, setRefreshSuccess] = useState(false)
   const [showLogsDialog, setShowLogsDialog] = useState(false)
   const [showModelsDialog, setShowModelsDialog] = useState(false)
+  const [showAccountSelectDialog, setShowAccountSelectDialog] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [apiKeyFormat, setApiKeyFormat] = useState<'sk' | 'simple' | 'token'>('sk')
   const [apiKeyCopied, setApiKeyCopied] = useState(false)
@@ -100,7 +103,12 @@ export function ProxyPanel() {
       const result = await window.api.proxyGetStatus()
       setIsRunning(result.running)
       if (result.config) {
-        setConfig(result.config as ProxyConfig)
+        const cfg = result.config as ProxyConfig & { selectedAccountIds?: string[] }
+        // 将 selectedAccountIds 数组转换为单个 selectedAccountId
+        if (cfg.selectedAccountIds && cfg.selectedAccountIds.length > 0) {
+          cfg.selectedAccountId = cfg.selectedAccountIds[0]
+        }
+        setConfig(cfg)
       }
       if (result.stats) {
         setStats(result.stats as ProxyStats)
@@ -510,16 +518,43 @@ export function ProxyPanel() {
               <Switch
                 id="multiAccount"
                 checked={config.enableMultiAccount}
-                onCheckedChange={(checked) => setConfig(prev => ({ ...prev, enableMultiAccount: checked }))}
+                onCheckedChange={(checked) => {
+                  setConfig(prev => ({ ...prev, enableMultiAccount: checked }))
+                  window.api.proxyUpdateConfig({ enableMultiAccount: checked })
+                }}
                 disabled={isRunning}
               />
               <Label htmlFor="multiAccount">{isEn ? 'Multi-Account' : '多账号轮询'}</Label>
             </div>
+            {/* 关闭多账号轮询时显示账号选择按钮 */}
+            {!config.enableMultiAccount && (
+              <div className="col-span-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setShowAccountSelectDialog(true)}
+                  disabled={isRunning}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  {config.selectedAccountId ? (
+                    (() => {
+                      const acc = accounts.get(config.selectedAccountId)
+                      return acc ? (acc.email || acc.id.substring(0, 12) + '...') : (isEn ? 'First Available' : '第一个可用账号')
+                    })()
+                  ) : (
+                    isEn ? 'First Available' : '第一个可用账号'
+                  )}
+                </Button>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Switch
                 id="logRequests"
                 checked={config.logRequests}
-                onCheckedChange={(checked) => setConfig(prev => ({ ...prev, logRequests: checked }))}
+                onCheckedChange={(checked) => {
+                  setConfig(prev => ({ ...prev, logRequests: checked }))
+                  window.api.proxyUpdateConfig({ logRequests: checked })
+                }}
               />
               <Label htmlFor="logRequests">{isEn ? 'Log Requests' : '记录日志'}</Label>
             </div>
@@ -538,10 +573,11 @@ export function ProxyPanel() {
                     { value: 'codewhisperer', label: 'CodeWhisperer', description: isEn ? 'IDE mode endpoint' : 'IDE 模式端点' },
                     { value: 'amazonq', label: 'AmazonQ', description: isEn ? 'CLI mode endpoint' : 'CLI 模式端点' }
                   ]}
-                  onChange={(value) => setConfig(prev => ({ 
-                    ...prev, 
-                    preferredEndpoint: value as 'codewhisperer' | 'amazonq' | undefined || undefined
-                  }))}
+                  onChange={(value) => {
+                    const endpoint = value as 'codewhisperer' | 'amazonq' | undefined || undefined
+                    setConfig(prev => ({ ...prev, preferredEndpoint: endpoint }))
+                    window.api.proxyUpdateConfig({ preferredEndpoint: endpoint })
+                  }}
                   placeholder={isEn ? 'Select endpoint' : '选择端点'}
                 />
               </div>
@@ -553,7 +589,11 @@ export function ProxyPanel() {
                   min={0}
                   max={10}
                   value={config.maxRetries || 3}
-                  onChange={(e) => setConfig(prev => ({ ...prev, maxRetries: parseInt(e.target.value) || 3 }))}
+                  onChange={(e) => {
+                  const retries = parseInt(e.target.value) || 3
+                  setConfig(prev => ({ ...prev, maxRetries: retries }))
+                  window.api.proxyUpdateConfig({ maxRetries: retries })
+                }}
                   disabled={isRunning}
                 />
               </div>
@@ -758,6 +798,19 @@ export function ProxyPanel() {
       <ModelsDialog
         open={showModelsDialog}
         onOpenChange={setShowModelsDialog}
+        isEn={isEn}
+      />
+
+      {/* 账号选择弹窗 */}
+      <AccountSelectDialog
+        open={showAccountSelectDialog}
+        onOpenChange={setShowAccountSelectDialog}
+        accounts={accounts}
+        selectedAccountId={config.selectedAccountId}
+        onSelect={(accountId) => {
+          setConfig(prev => ({ ...prev, selectedAccountId: accountId }))
+          window.api.proxyUpdateConfig({ selectedAccountIds: accountId ? [accountId] : [] })
+        }}
         isEn={isEn}
       />
     </div>

@@ -526,7 +526,7 @@ interface KiroApi {
   proxyGetStatus: () => Promise<{ running: boolean; config: unknown; stats: unknown }>
 
   // 更新反代服务器配置
-  proxyUpdateConfig: (config: { port?: number; host?: string; apiKey?: string; enableMultiAccount?: boolean; logRequests?: boolean; autoStart?: boolean }) => Promise<{ success: boolean; config?: unknown; error?: string }>
+  proxyUpdateConfig: (config: { port?: number; host?: string; apiKey?: string; enableMultiAccount?: boolean; selectedAccountIds?: string[]; logRequests?: boolean; autoStart?: boolean; maxRetries?: number; preferredEndpoint?: 'codewhisperer' | 'amazonq' }) => Promise<{ success: boolean; config?: unknown; error?: string }>
 
   // 添加账号到反代池
   proxyAddAccount: (account: { id: string; email?: string; accessToken: string; refreshToken?: string; profileArn?: string; expiresAt?: number }) => Promise<{ success: boolean; accountCount?: number; error?: string }>
